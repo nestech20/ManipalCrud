@@ -27,11 +27,11 @@ import jakarta.persistence.Table;
 public class User {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "user_id")
 	private Long id;
 	
     @CreationTimestamp
-    @Column(name = "created_date")
-	
+    @Column(name = "created_date")	
     private LocalDateTime createdDate;
 
     @UpdateTimestamp

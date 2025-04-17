@@ -54,7 +54,12 @@ public class UserServiceImpl implements UserService {
 		String email = userDTO.getEmail();
 		if (email == null || !email.matches("^[A-Za-z0-9+.-]+@[A-Za-z0-9.-]+$")){
 			throw new IllegalArgumentException("Email must be Valid.");
-		}adddto.setEmail(email);
+		}
+		 User existEmailUser = userRepository.findByEmail(email);
+		 if (existEmailUser != null) {
+			throw new IllegalArgumentException("Email Already use.");
+		}
+		adddto.setEmail(email);
         
          Gender gender = userDTO.getGender();
         if (gender == null) {
@@ -70,6 +75,11 @@ public class UserServiceImpl implements UserService {
         String panNo = userDTO.getPanNo();
         if (panNo == null || !panNo.matches("[A-Z]{5}[0-9]{4}[A-Z]")) {
 			throw new IllegalArgumentException("PAN number must be in valid format (ABCDE1234F).");			
+		}
+        
+        User existPan = userRepository.findByPanNo(panNo);
+        if (existPan != null) {
+        	throw new IllegalArgumentException(panNo +"is Already in use.");
 		}adddto.setPanNo(panNo);
         
         Long pinCode = userDTO.getPincode();
@@ -85,7 +95,13 @@ public class UserServiceImpl implements UserService {
         String mobNo = userDTO.getMobileNo();
         if (mobNo == null || !mobNo.matches("[6-9][0-9]{9}")) {
 			throw new IllegalArgumentException("Mobile number must be a valid 10-digit Indian number.");
-		}adddto.setMobileNo(mobNo);
+		}
+        
+        User existMobNO = UserRepository.findByMobileNo(mobNo);
+        if (existMobNO != null) {
+        	throw new IllegalArgumentException(mobNo + "is Already in use.");
+		}
+        adddto.setMobileNo(mobNo);
         
         String altNo = userDTO.getAlternateNo();
         if (altNo != null || !altNo.isEmpty()) {
@@ -166,111 +182,111 @@ public class UserServiceImpl implements UserService {
 			User existUser = abc.get();
 			
 			String fullName = userDTO.getFullName();
-			if (fullName == null || fullName.trim().isEmpty()) {
-				throw new IllegalArgumentException("FullName is required");
+			if (fullName != null && !fullName.trim().isEmpty()) {
+				existUser.setFullName(fullName);
 			}
-			 existUser.setFullName(fullName);
+			
 			
 			LocalDate dob = userDTO.getDob();
-			if (dob == null) {
-				throw new IllegalArgumentException("DateOfBirth is required");
-			}else if (dob.isAfter(java.time.LocalDate.now())) {
-				throw new IllegalArgumentException("DateOfBirth cannot be in the Future Date");			
+			if (dob != null && !dob.isAfter(java.time.LocalDate.now())) {	
+				existUser.setDob(dob);
 			}
-			 existUser.setDob(dob);
 			
 			String city= userDTO.getCity();
-			if (city == null || city.trim().isEmpty()) {
-		        throw new IllegalArgumentException("City is required.");
+			if (city != null && !city.trim().isEmpty()) {
+				existUser.setCity(city);
 		    }
-			 existUser.setCity(city);
+			 
 			
 			String add = userDTO.getAddress();
-			if (add == null || add.trim().isEmpty()) {
-		        throw new IllegalArgumentException("Address is required.");
+			if (add != null && !add.trim().isEmpty()) {
+				existUser.setAddress(add);
 		    }
-			 existUser.setAddress(add);
+			 
 			
 			
 			String email = userDTO.getEmail();
-			if (email == null || !email.matches("^[A-Za-z0-9+.-]+@[A-Za-z0-9.-]+$")){
-				throw new IllegalArgumentException("Email must be Valid.");
+			if (email != null && !email.trim().isEmpty()){
+				if (!email.matches("^[A-Za-z0-9+.-]+@[A-Za-z0-9.-]+$")) {
+					throw new IllegalArgumentException("Email must be Valid.");
+				}
+				
+				User existEmailUser = userRepository.findByEmail(email);
+				 if (existEmailUser != null) {
+					throw new IllegalArgumentException("Email Already use.");
+				}
+				existUser.setEmail(email);
 			}
-	         existUser.setEmail(email);
+	         
 	        
 	         Gender gender = userDTO.getGender();
-	        if (gender == null) {
-				throw new IllegalArgumentException("Gender is required");
+	        if (gender != null) {
+	        	existUser.setGender(gender);;
 				
 			}
-	         existUser.setGender(gender);
 	        
 	        
 	       	 Long annaualIncome = userDTO.getAnnualIncome();
-	        if (annaualIncome == null || annaualIncome <= 0) {
-				throw new IllegalArgumentException("Annual Income must be greter than 0.");
+	        if (annaualIncome != null && annaualIncome > 0) {
+	        	existUser.setAnnualIncome(annaualIncome);
 			}
-	         existUser.setAnnualIncome(annaualIncome);
+	         
 	        
 	        String panNo = userDTO.getPanNo();
-	        if (panNo == null || !panNo.matches("[A-Z]{5}[0-9]{4}[A-Z]")) {
-				throw new IllegalArgumentException("PAN number must be in valid format (ABCDE1234F).");			
+	        if (panNo != null && !panNo.matches("[A-Z]{5}[0-9]{4}[A-Z]")) {
+	        	
+	        	User existPan = userRepository.findByPanNo(panNo);
+	        	if (existPan != null) {
+	        		throw new IllegalArgumentException(panNo +"is Already in use.");
+				}
+	        	 existUser.setPanNo(panNo);			
 			}
-	         existUser.setPanNo(panNo);
+	        
 	        
 	        Long pinCode = userDTO.getPincode();
-	        if (pinCode == null || !String.valueOf(pinCode).matches("^[1-9][0-9]{5}$")) {
-		        throw new IllegalArgumentException("Pincode must be a valid 6-digit number.");
+	        if (pinCode != null && !String.valueOf(pinCode).matches("^[1-9][0-9]{5}$")) {
+	        	existUser.setPincode(pinCode);
 		    }
-	         existUser.setPincode(pinCode);
 	        
 	        Title title = userDTO.getTitle();
-	        if (title == null) {
-				throw new IllegalArgumentException("Title is required");
-	        }        
-	         existUser.setTitle(title);
+	        if (title != null) {
+	        	  existUser.setTitle(title);
+	        }
 	        
 	        String mobNo = userDTO.getMobileNo();
-	        if (mobNo == null || !mobNo.matches("[6-9][0-9]{9}")) {
-				throw new IllegalArgumentException("Mobile number must be a valid 10-digit Indian number.");
+	        if (mobNo != null && !mobNo.matches("[6-9][0-9]{9}")) {
+	        	
+	        	User existMobNO = UserRepository.findByMobileNo(mobNo);
+	            if (existMobNO != null) {
+	            	throw new IllegalArgumentException(mobNo + "is Already in use.");
+	    		}
+	               
 			}        
-	         existUser.setMobileNo(mobNo);
 	        
 	        String altNo = userDTO.getAlternateNo();
-	        if (altNo != null || !altNo.isEmpty()) {
+	        if (altNo != null && !altNo.isEmpty()) {
 				if (!altNo.matches("[6-9][0-9]{9}")) {
 					 throw new IllegalArgumentException("Alternate number must be a valid 10-digit Indian number.");
 				}
+				existUser.setAlternateNo(altNo);
 			}
-	         existUser.setAlternateNo(altNo);
+	      
 	        
 	        String state = userDTO.getState();
-	        if (state == null || state.trim().isEmpty()) {
-		        throw new IllegalArgumentException("State is required.");
+	        if (state != null && !state.trim().isEmpty()) {
+	        	existUser.setState(state);
 		    }
-	         existUser.setState(state);
+	    	
 	        
-	        Character status = userDTO.getStatus();
-	        if (status == null || !( status == 'Y' || status == 'N')) {
-		        throw new IllegalArgumentException("Status must be valid (Y/N).");
-		    }
-	         existUser.setStatus(status);
-	         
-			existUser.setCreatedDate(userDTO.getCreatedDate());
-			existUser.setUpdatedDate(userDTO.getUpdatedDate());	
-			
-			
-			userRepository.save(existUser);
-			
-			
+		userRepository.save(existUser);
 			return "Updated";
 		}
 		else {
-			return "Not Updated";
+			return "Not Updated";              
 		}
 	
    }
-	
+	  
 	@Override
 	public void delete(Long id) {
 			Optional<User> optionalUser = userRepository.findById(id);
