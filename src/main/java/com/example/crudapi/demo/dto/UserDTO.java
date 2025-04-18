@@ -2,7 +2,9 @@ package com.example.crudapi.demo.dto;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
+import com.example.crudapi.demo.entity.Nominee;
 import com.example.crudapi.demo.enums.Gender;
 import com.example.crudapi.demo.enums.Title;
 
@@ -33,6 +35,8 @@ public class UserDTO {
     // Audit
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
+    
+    private List<NomineeDTO> nominees;
     
 	public String getFullName() {
 		return fullName;
@@ -129,6 +133,12 @@ public class UserDTO {
 	}
 	public void setUpdatedDate(LocalDateTime updatedDate) {
 		this.updatedDate = updatedDate;
+	}
+	public List<NomineeDTO> getNominees() {
+		return nominees;
+	}
+	public void setNominees(List<NomineeDTO> nominees) {
+		this.nominees = nominees;
 	}
 
 		

@@ -15,7 +15,7 @@ public interface UserService {
 	
 	
 	//getbyid
-	String getUserById(Long id);
+	UserDTO getUserById(Long id);
 	
 	//put
 	String updateUser(Long id,UserDTO userDTO);

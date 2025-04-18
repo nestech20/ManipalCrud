@@ -78,7 +78,7 @@ public class UserController {
 		ResponseHandler handler3 = new ResponseHandler();
 		
 			try {
-				String xyz3 = userService.getUserById(id);
+				UserDTO xyz3 = userService.getUserById(id);
 				handler3.setData(xyz3);
 				handler3.setMessage("Succes");
 				handler3.setStatus(true);
