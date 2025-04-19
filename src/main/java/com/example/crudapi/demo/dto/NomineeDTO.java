@@ -18,6 +18,9 @@ public class NomineeDTO {
    
      private String relationship;
      
+ 	
+    private Character status;
+     
      public Character getStatus() {
 		return status;
 	}
@@ -26,8 +29,6 @@ public class NomineeDTO {
 		this.status = status;
 	}
 
-	@Column(name = "status")
-     private Character status;
 
 	public String getFirstName() {
 		return firstName;

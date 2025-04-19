@@ -35,8 +35,13 @@ public class UserDTO {
     // Audit
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
+   
     
     private List<NomineeDTO> nominees;
+    
+    //nomine updation confirmation
+    private Character isUpdatingNominee;
+    
     
 	public String getFullName() {
 		return fullName;
@@ -140,8 +145,16 @@ public class UserDTO {
 	public void setNominees(List<NomineeDTO> nominees) {
 		this.nominees = nominees;
 	}
+	public Character getIsUpdatingNominee() {
+		return isUpdatingNominee;
+	}
+	public void setIsUpdatingNominee(Character isUpdatingNominee) {
+		this.isUpdatingNominee = isUpdatingNominee;
+	}
+	
+	
 
-		
+	   	
 		
 		
 		
