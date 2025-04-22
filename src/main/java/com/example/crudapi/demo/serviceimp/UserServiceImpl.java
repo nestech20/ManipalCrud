@@ -1,14 +1,11 @@
 package com.example.crudapi.demo.serviceimp;
 
 import java.time.LocalDate;
-import java.time.Year;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.convert.DtoInstantiatingConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,20 +14,74 @@ import com.example.crudapi.demo.dto.NomineeDTO;
 import com.example.crudapi.demo.dto.UserDTO;
 import com.example.crudapi.demo.entity.Nominee;
 import com.example.crudapi.demo.entity.User;
+import com.example.crudapi.demo.entity.UserListing;
 import com.example.crudapi.demo.enums.Gender;
 import com.example.crudapi.demo.enums.Title;
 import com.example.crudapi.demo.repository.NomineeRepository;
 import com.example.crudapi.demo.repository.UserRepository;
 import com.example.crudapi.demo.service.UserService;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
+
 @Service
 public class UserServiceImpl implements UserService {
 
 	@Autowired
 	private UserRepository userRepository;
-
+    
 	@Autowired
 	private NomineeRepository nomineeRepository;
+	
+	@Autowired
+	private EntityManager entityManager;
+	
+	@Override
+	public List getAllUsersWithPagination(UserListing userListing){
+		
+		CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+		CriteriaQuery<User> cq = cb.createQuery(User.class);
+		Root<User> root = cq.from(User.class);
+		
+		cq.where(cb.equal(root.get("status"), "Y"));
+		
+		String sortBy = userListing.getSortBy();
+		if (sortBy == null || sortBy.trim().isEmpty()) {
+			sortBy = "id";
+		}
+
+		String sortOrder = userListing.getSortOrder();
+		if (sortOrder == null || sortOrder.trim().isEmpty()) {
+			sortOrder = "asc";
+		}
+
+		// Apply sorting to the query
+		if (sortOrder.equalsIgnoreCase("desc")) {
+			cq.orderBy(cb.desc(root.get(sortBy)));
+		} else {
+			cq.orderBy(cb.asc(root.get(sortBy)));
+		}
+
+		int page = userListing.getPageNo();
+		int size = userListing.getPageSize();
+
+		
+
+		TypedQuery<User> query = entityManager.createQuery(cq);
+		
+		if (size == 0 && page==0) {
+			return query.getResultList();
+		}
+		query.setFirstResult(page * size); // start from this record
+		query.setMaxResults(size); // max records to return
+
+		List<User> userList = query.getResultList();
+
+		return userList;
+	}
 
 	// ========================= Add User =========================
 	@Override
@@ -176,7 +227,7 @@ public class UserServiceImpl implements UserService {
 	        nominee.setFirstName(nomineeDTO.getFirstName());
 	        nominee.setLastName(nomineeDTO.getLastName());
 	        nominee.setDob(nomineeDTO.getDob());
-	        nominee.setMobileNo(nomineeDTO.getMobileNo());
+	        nominee.setMobileNo(nomineeDTO.getMobileNo()); 
 	        nominee.setRelationship(nomineeDTO.getRelationship());
 	        nominee.setStatus(nomineeDTO.getStatus());
 	        nominee.setUserId(userId);

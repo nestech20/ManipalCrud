@@ -19,7 +19,6 @@ public interface UserRepository extends JpaRepository<User,Long>{
 	User findByPanNo(String panNo);
 
 	static User findByMobileNo(String mobNo) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
