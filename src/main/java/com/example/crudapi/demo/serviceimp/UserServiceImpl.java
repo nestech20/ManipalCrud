@@ -1,5 +1,5 @@
 package com.example.crudapi.demo.serviceimp;
-
+  
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +14,7 @@ import com.example.crudapi.demo.dto.NomineeDTO;
 import com.example.crudapi.demo.dto.UserDTO;
 import com.example.crudapi.demo.entity.Nominee;
 import com.example.crudapi.demo.entity.User;
+import com.example.crudapi.demo.entity.UserFilter;
 import com.example.crudapi.demo.entity.UserListing;
 import com.example.crudapi.demo.enums.Gender;
 import com.example.crudapi.demo.enums.Title;
@@ -25,6 +26,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 
 @Service
@@ -40,47 +42,61 @@ public class UserServiceImpl implements UserService {
 	private EntityManager entityManager;
 	
 	@Override
-	public List getAllUsersWithPagination(UserListing userListing){
-		
-		CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-		CriteriaQuery<User> cq = cb.createQuery(User.class);
-		Root<User> root = cq.from(User.class);
-		
-		cq.where(cb.equal(root.get("status"), "Y"));
-		
-		String sortBy = userListing.getSortBy();
-		if (sortBy == null || sortBy.trim().isEmpty()) {
-			sortBy = "id";
-		}
+	public List<User> getAllUsersWithPagination(UserListing userListing) {
+	    CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+	    CriteriaQuery<User> cq = cb.createQuery(User.class);
+	    Root<User> root = cq.from(User.class);
 
-		String sortOrder = userListing.getSortOrder();
-		if (sortOrder == null || sortOrder.trim().isEmpty()) {
-			sortOrder = "asc";
-		}
+	    List<Predicate> predicates = new ArrayList<>();
 
-		// Apply sorting to the query
-		if (sortOrder.equalsIgnoreCase("desc")) {
-			cq.orderBy(cb.desc(root.get(sortBy)));
-		} else {
-			cq.orderBy(cb.asc(root.get(sortBy)));
-		}
+	    // Always filter active users
+	    predicates.add(cb.equal(root.get("status"), "Y"));
 
-		int page = userListing.getPageNo();
-		int size = userListing.getPageSize();
+	    // Apply filters if provided
+	    UserFilter filter = userListing.getUserFilter(); // << changed to correct getter
+	    if (filter != null) {
+	    	if (filter.getFullName() != null && !filter.getFullName().trim().isEmpty()) {
+	    	    predicates.add(cb.like(cb.lower(root.get("fullName")), "%" + filter.getFullName().toLowerCase() + "%"));
+	    	}
+	        if (filter.getEmail() != null && !filter.getEmail().trim().isEmpty()) {
+	            predicates.add(cb.like(cb.lower(root.get("email")), "%" + filter.getEmail().toLowerCase() + "%"));
+	        }
+	        if (filter.getMobileNo() != null && !filter.getMobileNo().trim().isEmpty()) {
+	            predicates.add(cb.like(root.get("mobileNo"), "%" + filter.getMobileNo().trim() + "%"));
+	        }
 
-		
+	    }
 
-		TypedQuery<User> query = entityManager.createQuery(cq);
-		
-		if (size == 0 && page==0) {
-			return query.getResultList();
-		}
-		query.setFirstResult(page * size); // start from this record
-		query.setMaxResults(size); // max records to return
+	    // Apply all predicates
+	    cq.where(cb.and(predicates.toArray(new Predicate[0])));
 
-		List<User> userList = query.getResultList();
+	    // Sorting
+	    String sortBy = (userListing.getSortBy() == null || userListing.getSortBy().trim().isEmpty()) 
+	        ? "id" 
+	        : userListing.getSortBy();
+	    String sortOrder = (userListing.getSortOrder() == null || userListing.getSortOrder().trim().isEmpty()) 
+	        ? "asc" 
+	        : userListing.getSortOrder();
 
-		return userList;
+	    if (sortOrder.equalsIgnoreCase("desc")) {
+	        cq.orderBy(cb.desc(root.get(sortBy)));
+	    } else {
+	        cq.orderBy(cb.asc(root.get(sortBy)));
+	    }
+
+	    // Pagination
+	    TypedQuery<User> query = entityManager.createQuery(cq);
+	    int page = userListing.getPageNo();
+	    int size = userListing.getPageSize();
+
+	    if (page >= 0 && size > 0) {
+	        query.setFirstResult(page * size); // zero-based page indexing
+	        query.setMaxResults(size);
+	    }
+
+	    List<User> users = query.getResultList();
+	    
+	    return users;
 	}
 
 	// ========================= Add User =========================

@@ -5,6 +5,8 @@ public class UserListing {
 	private int pageSize;
 	private String sortBy;
 	private String sortOrder; // ASC or DESC
+	
+	private UserFilter userFilter;
 
 	public int getPageNo() {
 		return pageNo;
@@ -37,5 +39,14 @@ public class UserListing {
 	public void setSortOrder(String sortOrder) {
 		this.sortOrder = sortOrder;
 	}
+
+	public UserFilter getUserFilter() {
+		return userFilter;
+	}
+
+	public void setUserFilter(UserFilter userFilter) {
+		this.userFilter = userFilter;
+	}
+	
 
 }

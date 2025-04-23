@@ -1,4 +1,4 @@
-package com.example.crudapi.demo.entity;
+ package com.example.crudapi.demo.entity;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.crudapi.demo.dto.UserDTO;
+import com.example.crudapi.demo.entity.User;
 import com.example.crudapi.demo.entity.UserListing;
 import com.example.crudapi.demo.response.ResponseHandler;
 import com.example.crudapi.demo.serviceimp.UserServiceImpl;
@@ -24,6 +25,28 @@ public class UserController {
 
 	@Autowired
 	private UserServiceImpl userService;
+	
+	
+	// GET all active users
+	@GetMapping
+ 	public ResponseHandler getAllUsers() {
+ 
+ 		ResponseHandler handler2 = new ResponseHandler();
+ 		try {
+ 			List<UserDTO> data = userService.getAllUser();
+ 
+ 			handler2.setData(data);
+ 			handler2.setMessage("Succes");
+ 			handler2.setStatus(true);
+ 		} catch (Exception e) {
+ 			handler2.setData(new ArrayList<>());
+ 			handler2.setMessage("fail");
+ 			handler2.setStatus(false);
+ 		}
+ 
+ 		return handler2;
+ 	}
+ 
 
 	@PostMapping
 	public ResponseHandler addUser(@RequestBody UserDTO userDTO) {
@@ -55,7 +78,7 @@ public class UserController {
 	public ResponseHandler getAllUsersPaginated(@RequestBody UserListing userListing) {
 	    ResponseHandler handler = new ResponseHandler();
 	    try {
-	        List<UserDTO> users = userService.getAllUsersWithPagination(userListing); // Assuming conversion to DTO is handled
+	        List<User> users = userService.getAllUsersWithPagination(userListing); // Assuming conversion to DTO is handled
 	        handler.setData(users);
 	        handler.setMessage("Success");
 	        handler.setStatus(true);
