@@ -25,28 +25,26 @@ public class UserController {
 
 	@Autowired
 	private UserServiceImpl userService;
-	
-	
+
 	// GET all active users
 	@GetMapping
- 	public ResponseHandler getAllUsers() {
- 
- 		ResponseHandler handler2 = new ResponseHandler();
- 		try {
- 			List<UserDTO> data = userService.getAllUser();
- 
- 			handler2.setData(data);
- 			handler2.setMessage("Succes");
- 			handler2.setStatus(true);
- 		} catch (Exception e) {
- 			handler2.setData(new ArrayList<>());
- 			handler2.setMessage("fail");
- 			handler2.setStatus(false);
- 		}
- 
- 		return handler2;
- 	}
- 
+	public ResponseHandler getAllUsers() {
+
+		ResponseHandler handler2 = new ResponseHandler();
+		try {
+			List<UserDTO> data = userService.getAllUser();
+
+			handler2.setData(data);
+			handler2.setMessage("Succes");
+			handler2.setStatus(true);
+		} catch (Exception e) {
+			handler2.setData(new ArrayList<>());
+			handler2.setMessage("fail");
+			handler2.setStatus(false);
+		}
+
+		return handler2;
+	}
 
 	@PostMapping
 	public ResponseHandler addUser(@RequestBody UserDTO userDTO) {
@@ -56,7 +54,7 @@ public class UserController {
 		try {
 			String data = userService.addUser(userDTO);
 			handler.setData(data);
-			handler.setMessage("Succes");
+			handler.setMessage("Success");
 			handler.setStatus(true);
 
 		} catch (IllegalArgumentException e) {
@@ -76,20 +74,30 @@ public class UserController {
 
 	@PostMapping("/paginated")
 	public ResponseHandler getAllUsersPaginated(@RequestBody UserListing userListing) {
-	    ResponseHandler handler = new ResponseHandler();
-	    try {
-	        List<User> users = userService.getAllUsersWithPagination(userListing); // Assuming conversion to DTO is handled
-	        handler.setData(users);
-	        handler.setMessage("Success");
-	        handler.setStatus(true);
-	    } catch (Exception e) {
-	        handler.setData(new ArrayList<>());
-	        handler.setMessage("Failed to fetch users: " + e.getMessage());
-	        handler.setStatus(false);
-	    }
-	    return handler;
-	}
+		ResponseHandler handler = new ResponseHandler();
 
+		List<UserDTO> count = userService.getAllUser();
+		int countUsers = count.size();
+		try {
+			List<User> users = userService.getAllUsersWithPagination(userListing);
+
+			// Assuming conversion to DTO is handled
+			handler.setData(users);
+			handler.setMessage("Success");
+			handler.setStatus(true);
+			if (userListing.getUserFilter() != null) {
+				handler.setTotalRecord(users.size());
+			} else {
+				handler.setTotalRecord(countUsers);
+			}
+
+		} catch (Exception e) {
+			handler.setData(new ArrayList<>());
+			handler.setMessage("Failed to fetch users: " + e.getMessage());
+			handler.setStatus(false);
+		}
+		return handler;
+	}
 
 	@GetMapping("/{id}")
 	public ResponseHandler getUserById(@PathVariable Long id) {

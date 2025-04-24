@@ -1,10 +1,11 @@
 package com.example.crudapi.demo.serviceimp;
-  
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import org.hibernate.dialect.function.array.OracleArrayAggEmulation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,227 +35,229 @@ public class UserServiceImpl implements UserService {
 
 	@Autowired
 	private UserRepository userRepository;
-    
+
 	@Autowired
 	private NomineeRepository nomineeRepository;
-	
+
 	@Autowired
 	private EntityManager entityManager;
-	
+
 	@Override
 	public List<User> getAllUsersWithPagination(UserListing userListing) {
-	    CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-	    CriteriaQuery<User> cq = cb.createQuery(User.class);
-	    Root<User> root = cq.from(User.class);
+		CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+		CriteriaQuery<User> cq = cb.createQuery(User.class);
+		Root<User> root = cq.from(User.class);
 
-	    List<Predicate> predicates = new ArrayList<>();
+		List<Predicate> predicates = new ArrayList<>();
 
-	    // Always filter active users
-	    predicates.add(cb.equal(root.get("status"), "Y"));
+		// Always filter active users
+		predicates.add(cb.equal(root.get("status"), "Y"));
 
-	    // Apply filters if provided
-	    UserFilter filter = userListing.getUserFilter(); // << changed to correct getter
-	    if (filter != null) {
-	    	if (filter.getFullName() != null && !filter.getFullName().trim().isEmpty()) {
-	    	    predicates.add(cb.like(cb.lower(root.get("fullName")), "%" + filter.getFullName().toLowerCase() + "%"));
-	    	}
-	        if (filter.getEmail() != null && !filter.getEmail().trim().isEmpty()) {
-	            predicates.add(cb.like(cb.lower(root.get("email")), "%" + filter.getEmail().toLowerCase() + "%"));
-	        }
-	        if (filter.getMobileNo() != null && !filter.getMobileNo().trim().isEmpty()) {
-	            predicates.add(cb.like(root.get("mobileNo"), "%" + filter.getMobileNo().trim() + "%"));
-	        }
+		// Apply filters if provided
+		UserFilter filter = userListing.getUserFilter(); // << changed to correct getter
+		if (filter != null) {
+			if (filter.getFullName() != null && !filter.getFullName().trim().isEmpty()) {
+				predicates.add(cb.like(cb.lower(root.get("fullName")), "%" + filter.getFullName().toLowerCase() + "%"));
+			}
+			if (filter.getEmail() != null && !filter.getEmail().trim().isEmpty()) {
+				predicates.add(cb.like(cb.lower(root.get("email")), "%" + filter.getEmail().toLowerCase() + "%"));
+			}
+			if (filter.getMobileNo() != null && !filter.getMobileNo().trim().isEmpty()) {
+				predicates.add(cb.like(root.get("mobileNo"), "%" + filter.getMobileNo().trim() + "%"));
+			}
 
-	    }
+		}
 
-	    // Apply all predicates
-	    cq.where(cb.and(predicates.toArray(new Predicate[0])));
+		// Apply all predicates
+		cq.where(cb.and(predicates.toArray(new Predicate[0])));
 
-	    // Sorting
-	    String sortBy = (userListing.getSortBy() == null || userListing.getSortBy().trim().isEmpty()) 
-	        ? "id" 
-	        : userListing.getSortBy();
-	    String sortOrder = (userListing.getSortOrder() == null || userListing.getSortOrder().trim().isEmpty()) 
-	        ? "asc" 
-	        : userListing.getSortOrder();
+		// Sorting
+		String sortBy = (userListing.getSortBy() == null || userListing.getSortBy().trim().isEmpty()) ? "id"
+				: userListing.getSortBy();
+		String sortOrder = (userListing.getSortOrder() == null || userListing.getSortOrder().trim().isEmpty()) ? "desc"
+				: userListing.getSortOrder();
 
-	    if (sortOrder.equalsIgnoreCase("desc")) {
-	        cq.orderBy(cb.desc(root.get(sortBy)));
-	    } else {
-	        cq.orderBy(cb.asc(root.get(sortBy)));
-	    }
+		if (sortOrder.equalsIgnoreCase("desc")) {
+			cq.orderBy(cb.desc(root.get(sortBy)));
+		} else {
+			cq.orderBy(cb.asc(root.get(sortBy)));
+		}
 
-	    // Pagination
-	    TypedQuery<User> query = entityManager.createQuery(cq);
-	    int page = userListing.getPageNo();
-	    int size = userListing.getPageSize();
+		// Pagination
+		TypedQuery<User> query = entityManager.createQuery(cq);
+		int page = userListing.getPageNo();
+		int size = userListing.getPageSize();
 
-	    if (page >= 0 && size > 0) {
-	        query.setFirstResult(page * size); // zero-based page indexing
-	        query.setMaxResults(size);
-	    }
+		
+		if (page <= 0) {
+		    throw new IllegalArgumentException("Page number must be greater than 0");
+		}
+		
+		if (page >= 0 && size > 0) {
+			query.setFirstResult((page - 1 ) * size); // zero-based page indexing
+			query.setMaxResults(size);
+		}
 
-	    List<User> users = query.getResultList();
-	    
-	    return users;
+		List<User> users = query.getResultList();
+
+		return users;
 	}
 
 	// ========================= Add User =========================
 	@Override
 	public String addUser(UserDTO userDTO) {
 
-	    User adddto = new User();
+		User adddto = new User();
 
-	    // Validate and set full name
-	    String fullName = userDTO.getFullName();
-	    if (fullName == null || fullName.trim().isEmpty()) {
-	        throw new IllegalArgumentException("FullName is required");
-	    }
-	    adddto.setFullName(fullName);
+		// Validate and set full name
+		String fullName = userDTO.getFullName();
+		if (fullName == null || fullName.trim().isEmpty()) {
+			throw new IllegalArgumentException("FullName is required");
+		}
+		adddto.setFullName(fullName);
 
-	    // Validate and set date of birth
-	    LocalDate dob = userDTO.getDob();
-	    if (dob == null) {
-	        throw new IllegalArgumentException("DateOfBirth is required");
-	    } else if (dob.isAfter(LocalDate.now())) {
-	        throw new IllegalArgumentException("DateOfBirth cannot be in the Future Date");
-	    }
-	    adddto.setDob(dob);
+		// Validate and set date of birth
+		LocalDate dob = userDTO.getDob();
+		if (dob == null) {
+			throw new IllegalArgumentException("DateOfBirth is required");
+		} else if (dob.isAfter(LocalDate.now())) {
+			throw new IllegalArgumentException("DateOfBirth cannot be in the Future Date");
+		}
+		adddto.setDob(dob);
 
-	    // Validate and set city
-	    String city = userDTO.getCity();
-	    if (city == null || city.trim().isEmpty()) {
-	        throw new IllegalArgumentException("City is required.");
-	    }
-	    adddto.setCity(city);
+		// Validate and set city
+		String city = userDTO.getCity();
+		if (city == null || city.trim().isEmpty()) {
+			throw new IllegalArgumentException("City is required.");
+		}
+		adddto.setCity(city);
 
-	    // Validate and set address
-	    String add = userDTO.getAddress();
-	    if (add == null || add.trim().isEmpty()) {
-	        throw new IllegalArgumentException("Address is required.");
-	    }
-	    adddto.setAddress(add);
+		// Validate and set address
+		String add = userDTO.getAddress();
+		if (add == null || add.trim().isEmpty()) {
+			throw new IllegalArgumentException("Address is required.");
+		}
+		adddto.setAddress(add);
 
-	    // Validate email format and uniqueness
-	    String email = userDTO.getEmail();
-	    if (email == null || !email.matches("^[A-Za-z0-9+.-]+@[A-Za-z0-9.-]+$")) {
-	        throw new IllegalArgumentException("Email must be Valid.");
-	    }
-	    User existEmailUser = userRepository.findByEmail(email);
-	    if (existEmailUser != null) {
-	        throw new IllegalArgumentException("Email Already in use.");
-	    }
-	    adddto.setEmail(email);
+		// Validate email format and uniqueness
+		String email = userDTO.getEmail();
+		if (email == null || !email.matches("^[A-Za-z0-9+.-]+@[A-Za-z0-9.-]+$")) {
+			throw new IllegalArgumentException("Email must be Valid.");
+		}
+		User existEmailUser = userRepository.findByEmail(email);
+		if (existEmailUser != null) {
+			throw new IllegalArgumentException("Email Already in use.");
+		}
+		adddto.setEmail(email);
 
-	    // Validate and set gender
-	    Gender gender = userDTO.getGender();
-	    if (gender == null) {
-	        throw new IllegalArgumentException("Gender is required");
-	    }
-	    adddto.setGender(gender);
+		// Validate and set gender
+		Gender gender = userDTO.getGender();
+		if (gender == null) {
+			throw new IllegalArgumentException("Gender is required");
+		}
+		adddto.setGender(gender);
 
-	    // Validate and set annual income
-	    Long annaualIncome = userDTO.getAnnualIncome();
-	    if (annaualIncome == null || annaualIncome <= 0) {
-	        throw new IllegalArgumentException("Annual Income must be greater than 0.");
-	    }
-	    adddto.setAnnualIncome(annaualIncome);
+		// Validate and set annual income
+		Long annaualIncome = userDTO.getAnnualIncome();
+		if (annaualIncome == null || annaualIncome <= 0) {
+			throw new IllegalArgumentException("Annual Income must be greater than 0.");
+		}
+		adddto.setAnnualIncome(annaualIncome);
 
-	    // Validate PAN format and uniqueness
-	    String panNo = userDTO.getPanNo();
-	    if (panNo == null || !panNo.matches("[A-Z]{5}[0-9]{4}[A-Z]")) {
-	        throw new IllegalArgumentException("PAN number must be in valid format (ABCDE1234F).");
-	    }
-	    User existPan = userRepository.findByPanNo(panNo);
-	    if (existPan != null) {
-	        throw new IllegalArgumentException(panNo + " is Already in use.");
-	    }
-	    adddto.setPanNo(panNo);
+		// Validate PAN format and uniqueness
+		String panNo = userDTO.getPanNo();
+		if (panNo == null || !panNo.matches("[A-Z]{5}[0-9]{4}[A-Z]")) {
+			throw new IllegalArgumentException("PAN number must be in valid format (ABCDE1234F).");
+		}
+		User existPan = userRepository.findByPanNo(panNo);
+		if (existPan != null) {
+			throw new IllegalArgumentException(panNo + " is Already in use.");
+		}
+		adddto.setPanNo(panNo);
 
-	    // Validate and set pincode
-	    Long pinCode = userDTO.getPincode();
-	    if (pinCode == null || !String.valueOf(pinCode).matches("^[1-9][0-9]{5}$")) {
-	        throw new IllegalArgumentException("Pincode must be a valid 6-digit number.");
-	    }
-	    adddto.setPincode(pinCode);
+		// Validate and set pincode
+		Long pinCode = userDTO.getPincode();
+		if (pinCode == null || !String.valueOf(pinCode).matches("^[1-9][0-9]{5}$")) {
+			throw new IllegalArgumentException("Pincode must be a valid 6-digit number.");
+		}
+		adddto.setPincode(pinCode);
 
-	    // Validate and set title
-	    Title title = userDTO.getTitle();
-	    if (title == null) {
-	        throw new IllegalArgumentException("Title is required");
-	    }
-	    adddto.setTitle(title);
+		// Validate and set title
+		Title title = userDTO.getTitle();
+		if (title == null) {
+			throw new IllegalArgumentException("Title is required");
+		}
+		adddto.setTitle(title);
 
-	    // Validate mobile number format and uniqueness
-	    String mobNo = userDTO.getMobileNo();
-	    if (mobNo == null || !mobNo.matches("[6-9][0-9]{9}")) {
-	        throw new IllegalArgumentException("Mobile number must be a valid 10-digit Indian number.");
-	    }
-	    User existMobNO = UserRepository.findByMobileNo(mobNo);
-	    if (existMobNO != null) {
-	        throw new IllegalArgumentException(mobNo + " is Already in use.");
-	    }
-	    adddto.setMobileNo(mobNo);
+		// Validate mobile number format and uniqueness
+		String mobNo = userDTO.getMobileNo();
+		if (mobNo == null || !mobNo.matches("[6-9][0-9]{9}")) {
+			throw new IllegalArgumentException("Mobile number must be a valid 10-digit Indian number.");
+		}
+		User existMobNO = UserRepository.findByMobileNo(mobNo);
+		if (existMobNO != null) {
+			throw new IllegalArgumentException(mobNo + " is Already in use.");
+		}
+		adddto.setMobileNo(mobNo);
 
-	    // Validate alternate number if provided
-	    String altNo = userDTO.getAlternateNo();
-	    if (altNo != null && !altNo.isEmpty()) {
-	        if (!altNo.matches("[6-9][0-9]{9}")) {
-	            throw new IllegalArgumentException("Alternate number must be a valid 10-digit Indian number.");
-	        }
-	    }
-	    adddto.setAlternateNo(altNo);
+		// Validate alternate number if provided
+		String altNo = userDTO.getAlternateNo();
+		if (altNo != null && !altNo.isEmpty()) {
+			if (!altNo.matches("[6-9][0-9]{9}")) {
+				throw new IllegalArgumentException("Alternate number must be a valid 10-digit Indian number.");
+			}
+		}
+		adddto.setAlternateNo(altNo);
 
-	    // Validate and set state
-	    String state = userDTO.getState();
-	    if (state == null || state.trim().isEmpty()) {
-	        throw new IllegalArgumentException("State is required.");
-	    }
-	    adddto.setState(state);
+		// Validate and set state
+		String state = userDTO.getState();
+		if (state == null || state.trim().isEmpty()) {
+			throw new IllegalArgumentException("State is required.");
+		}
+		adddto.setState(state);
 
-	    // Validate and set status
-	    Character status = userDTO.getStatus();
-	    if (status == null || !(status == 'Y' || status == 'N')) {
-	        throw new IllegalArgumentException("Status must be valid (Y/N).");
-	    }
-	    adddto.setStatus(status);
+		// Validate and set status
+		Character status = userDTO.getStatus();
+		if (status == null || !(status == 'Y' || status == 'N')) {
+			throw new IllegalArgumentException("Status must be valid (Y/N).");
+		}
+		adddto.setStatus(status);
 
-	    // Set creation and update dates
-	    adddto.setCreatedDate(userDTO.getCreatedDate());
-	    adddto.setUpdatedDate(userDTO.getUpdatedDate());
+		// Set creation and update dates
+		adddto.setCreatedDate(userDTO.getCreatedDate());
+		adddto.setUpdatedDate(userDTO.getUpdatedDate());
 
-	    // Save user and get generated ID
-	    User details = userRepository.save(adddto);
-	    Long userId = details.getId();
+		// Save user and get generated ID
+		User details = userRepository.save(adddto);
+		Long userId = details.getId();
 
-	    // Process and save nominee details
-	    List<NomineeDTO> nomineeDetails = userDTO.getNominees();
+		// Process and save nominee details
+		List<NomineeDTO> nomineeDetails = userDTO.getNominees();
 
-	    // === 1. Check if only one nominee is being added ===
-	 // Validate if only one nominee is provided
-	    if (nomineeDetails.size() > 1) {
-	        throw new IllegalArgumentException("Only one nominee is allowed per user.");
-	    }
+		// === 1. Check if only one nominee is being added ===
+		// Validate if only one nominee is providedetRelationship());
+		if (nomineeDetails.size() > 1) {
+			throw new IllegalArgumentException("Only one nominee is allowed per user.");
+		}
 
+		List<Nominee> nomineeEnties = new ArrayList<>();
+		for (NomineeDTO nomineeDTO : nomineeDetails) {
+			Nominee nominee = new Nominee();
+			nominee.setFirstName(nomineeDTO.getFirstName());
+			nominee.setLastName(nomineeDTO.getLastName());
+			nominee.setDob(nomineeDTO.getDob());
+			nominee.setMobileNo(nomineeDTO.getMobileNo());
+			nominee.setRelationship(nomineeDTO.getRelationship());
+			nominee.setStatus(nomineeDTO.getStatus());
+			nominee.setUserId(userId);
 
-	    List<Nominee> nomineeEnties = new ArrayList<>();
-	    for (NomineeDTO nomineeDTO : nomineeDetails) {
-	        Nominee nominee = new Nominee();
-	        nominee.setFirstName(nomineeDTO.getFirstName());
-	        nominee.setLastName(nomineeDTO.getLastName());
-	        nominee.setDob(nomineeDTO.getDob());
-	        nominee.setMobileNo(nomineeDTO.getMobileNo()); 
-	        nominee.setRelationship(nomineeDTO.getRelationship());
-	        nominee.setStatus(nomineeDTO.getStatus());
-	        nominee.setUserId(userId);
+			nomineeEnties.add(nominee);
+		}
 
-	        nomineeEnties.add(nominee);
-	    }
+		// Save nominee if validation passes
+		nomineeRepository.saveAll(nomineeEnties);
 
-	    // Save nominee if validation passes
-	    nomineeRepository.saveAll(nomineeEnties);
-
-	    return "User and nominee added successfully.";
+		return "User and nominee added successfully.";
 	}
 
 	// ========================= Get All Active Users =========================
@@ -284,7 +287,6 @@ public class UserServiceImpl implements UserService {
 			addDto.setCreatedDate(user.getCreatedDate());
 			addDto.setUpdatedDate(user.getUpdatedDate());
 
-		
 			addUser.add(addDto);
 		}
 
@@ -319,7 +321,7 @@ public class UserServiceImpl implements UserService {
 			setDetails.setUpdatedDate(user.getUpdatedDate());
 
 			// Load and map nominee list
-			List<Nominee> nominees = nomineeRepository.findByUserId(user.getId());
+			List<Nominee> nominees = nomineeRepository.findByUserIdAndStatus(user.getId(), 'Y');
 			List<NomineeDTO> nomineeDList = new ArrayList<>();
 
 			for (Nominee nominee : nominees) {
@@ -344,128 +346,130 @@ public class UserServiceImpl implements UserService {
 	// ========================= Update User =========================
 	@Override
 	public String updateUser(@PathVariable Long id, @RequestBody UserDTO userDTO) {
-	    Optional<User> abc = userRepository.findByIdAndStatus(id, 'Y');
+		Optional<User> abc = userRepository.findByIdAndStatus(id, 'Y');
 
-	    if (abc.isPresent()) {
-	        User existUser = abc.get();
+		if (abc.isPresent()) {
+			User existUser = abc.get();
 
-	        // === 1. Handle nominee update if requested ===
-	        Character isUpdatingNominee = userDTO.getIsUpdatingNominee();
+			// === 1. Handle nominee update if requested ===
+			Character isUpdatingNominee = userDTO.getIsUpdatingNominee();
 
-	        if (isUpdatingNominee != null && isUpdatingNominee == 'Y') {
+			if (isUpdatingNominee != null && isUpdatingNominee == 'Y') {
 
-	            // === Validate nominee input ===
-	            List<NomineeDTO> nomineeDTOs = userDTO.getNominees();
-	            if (nomineeDTOs == null || nomineeDTOs.isEmpty()) {
-	                throw new IllegalArgumentException("Nominee details are mandatory when isUpdatingNominee is 'Y'.");
-	            }
-	            if (nomineeDTOs.size() > 1) {
-	                throw new IllegalArgumentException("Only one nominee is allowed per user.");
-	            }
+				// === Validate nominee input ===
+				List<NomineeDTO> nomineeDTOs = userDTO.getNominees();
+				if (nomineeDTOs == null || nomineeDTOs.isEmpty()) {
+					throw new IllegalArgumentException("Nominee details are mandatory when isUpdatingNominee is 'Y'.");
+				}
+				if (nomineeDTOs.size() > 1) {
+					throw new IllegalArgumentException("Only one nominee is allowed per user.");
+				}
 
-	            // === Logically delete existing active nominee(s) ===
-	            List<Nominee> existingNominees = nomineeRepository.findByUserId(id);
-	            for (Nominee existingNominee : existingNominees) {
-	                if (existingNominee.getStatus() != null && existingNominee.getStatus() == 'Y') {
-	                    existingNominee.setStatus('N'); // Logical deletion
-	                    nomineeRepository.save(existingNominee);
-	                }
-	            }
+				// === Logically delete existing active nominee(s) ===
+				List<Nominee> existingNominees = nomineeRepository.findByUserId(id);
+				for (Nominee existingNominee : existingNominees) {
+					if (existingNominee.getStatus() != null && existingNominee.getStatus() == 'Y') {
+						existingNominee.setStatus('N'); // Logical deletion
+						nomineeRepository.save(existingNominee);
+					}
+				}
 
-	            // === Save new nominee ===
-	            NomineeDTO dto = nomineeDTOs.get(0);
+				// === Save new nominee ===
+				NomineeDTO dto = nomineeDTOs.get(0);
 
-	            // Validate fields
-	            if (dto.getFirstName() == null || dto.getLastName() == null || dto.getDob() == null ||
-	                dto.getMobileNo() == null || dto.getRelationship() == null) {
-	                throw new IllegalArgumentException("All nominee fields are required when isUpdatingNominee is 'Y'.");
-	            }
+				// Validate fields
+				if (dto.getFirstName() == null || dto.getLastName() == null || dto.getDob() == null
+						|| dto.getMobileNo() == null || dto.getRelationship() == null) {
+					throw new IllegalArgumentException(
+							"All nominee fields are required when isUpdatingNominee is 'Y'.");
+				}
 
-	            Nominee nominee = new Nominee();
-	            nominee.setUserId(id);
-	            nominee.setFirstName(dto.getFirstName());
-	            nominee.setLastName(dto.getLastName());
-	            nominee.setDob(dto.getDob());
-	            nominee.setMobileNo(dto.getMobileNo());
-	            nominee.setRelationship(dto.getRelationship());
-	            nominee.setStatus('Y'); // New nominee is active
+				Nominee nominee = new Nominee();
+				nominee.setUserId(id);
+				nominee.setFirstName(dto.getFirstName());
+				nominee.setLastName(dto.getLastName());
+				nominee.setDob(dto.getDob());
+				nominee.setMobileNo(dto.getMobileNo());
+				nominee.setRelationship(dto.getRelationship());
+				nominee.setStatus('Y'); // New nominee is active
 
-	            nomineeRepository.save(nominee);
+				nomineeRepository.save(nominee);
 
-	        } else if (isUpdatingNominee != null && isUpdatingNominee == 'N') {
-	            // Skip nominee update
-	        } else {
-	            throw new IllegalArgumentException("Invalid value for isUpdatingNominee. Allowed values are 'Y' or 'N'.");
-	        }
+			} else if (isUpdatingNominee != null && isUpdatingNominee == 'N') {
+				// Skip nominee update
+			} else {
+				throw new IllegalArgumentException(
+						"Invalid value for isUpdatingNominee. Allowed values are 'Y' or 'N'.");
+			}
 
-	        // === 2. Update User fields with validations ===
+			// === 2. Update User fields with validations ===
 
-	        if (userDTO.getFullName() != null && !userDTO.getFullName().trim().isEmpty())
-	            existUser.setFullName(userDTO.getFullName());
+			if (userDTO.getFullName() != null && !userDTO.getFullName().trim().isEmpty())
+				existUser.setFullName(userDTO.getFullName());
 
-	        if (userDTO.getDob() != null && !userDTO.getDob().isAfter(LocalDate.now()))
-	            existUser.setDob(userDTO.getDob());
+			if (userDTO.getDob() != null && !userDTO.getDob().isAfter(LocalDate.now()))
+				existUser.setDob(userDTO.getDob());
 
-	        if (userDTO.getCity() != null && !userDTO.getCity().trim().isEmpty())
-	            existUser.setCity(userDTO.getCity());
+			if (userDTO.getCity() != null && !userDTO.getCity().trim().isEmpty())
+				existUser.setCity(userDTO.getCity());
 
-	        if (userDTO.getAddress() != null && !userDTO.getAddress().trim().isEmpty())
-	            existUser.setAddress(userDTO.getAddress());
+			if (userDTO.getAddress() != null && !userDTO.getAddress().trim().isEmpty())
+				existUser.setAddress(userDTO.getAddress());
 
-	        if (userDTO.getEmail() != null && !userDTO.getEmail().trim().isEmpty()) {
-	            if (!userDTO.getEmail().matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"))
-	                throw new IllegalArgumentException("Email must be valid.");
+			if (userDTO.getEmail() != null && !userDTO.getEmail().trim().isEmpty()) {
+				if (!userDTO.getEmail().matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"))
+					throw new IllegalArgumentException("Email must be valid.");
 
-	            User existEmailUser = userRepository.findByEmail(userDTO.getEmail());
-	            if (existEmailUser != null && !existEmailUser.getId().equals(id))
-	                throw new IllegalArgumentException("Email already in use.");
+				User existEmailUser = userRepository.findByEmail(userDTO.getEmail());
+				if (existEmailUser != null && !existEmailUser.getId().equals(id))
+					throw new IllegalArgumentException("Email already in use.");
 
-	            existUser.setEmail(userDTO.getEmail());
-	        }
+				existUser.setEmail(userDTO.getEmail());
+			}
 
-	        if (userDTO.getGender() != null)
-	            existUser.setGender(userDTO.getGender());
+			if (userDTO.getGender() != null)
+				existUser.setGender(userDTO.getGender());
 
-	        if (userDTO.getAnnualIncome() != null && userDTO.getAnnualIncome() > 0)
-	            existUser.setAnnualIncome(userDTO.getAnnualIncome());
+			if (userDTO.getAnnualIncome() != null && userDTO.getAnnualIncome() > 0)
+				existUser.setAnnualIncome(userDTO.getAnnualIncome());
 
-	        if (userDTO.getPanNo() != null && userDTO.getPanNo().matches("[A-Z]{5}[0-9]{4}[A-Z]")) {
-	            User existPan = userRepository.findByPanNo(userDTO.getPanNo());
-	            if (existPan != null && !existPan.getId().equals(id))
-	                throw new IllegalArgumentException(userDTO.getPanNo() + " is already in use.");
+			if (userDTO.getPanNo() != null && userDTO.getPanNo().matches("[A-Z]{5}[0-9]{4}[A-Z]")) {
+				User existPan = userRepository.findByPanNo(userDTO.getPanNo());
+				if (existPan != null && !existPan.getId().equals(id))
+					throw new IllegalArgumentException(userDTO.getPanNo() + " is already in use.");
 
-	            existUser.setPanNo(userDTO.getPanNo());
-	        }
+				existUser.setPanNo(userDTO.getPanNo());
+			}
 
-	        if (userDTO.getPincode() != null && String.valueOf(userDTO.getPincode()).matches("^[1-9][0-9]{5}$"))
-	            existUser.setPincode(userDTO.getPincode());
+			if (userDTO.getPincode() != null && String.valueOf(userDTO.getPincode()).matches("^[1-9][0-9]{5}$"))
+				existUser.setPincode(userDTO.getPincode());
 
-	        if (userDTO.getTitle() != null)
-	            existUser.setTitle(userDTO.getTitle());
+			if (userDTO.getTitle() != null)
+				existUser.setTitle(userDTO.getTitle());
 
-	        if (userDTO.getMobileNo() != null && userDTO.getMobileNo().matches("[6-9][0-9]{9}")) {
-	            User existMobNO = UserRepository.findByMobileNo(userDTO.getMobileNo());
-	            if (existMobNO != null && !existMobNO.getId().equals(id))
-	                throw new IllegalArgumentException(userDTO.getMobileNo() + " is already in use.");
+			if (userDTO.getMobileNo() != null && userDTO.getMobileNo().matches("[6-9][0-9]{9}")) {
+				User existMobNO = UserRepository.findByMobileNo(userDTO.getMobileNo());
+				if (existMobNO != null && !existMobNO.getId().equals(id))
+					throw new IllegalArgumentException(userDTO.getMobileNo() + " is already in use.");
 
-	            existUser.setMobileNo(userDTO.getMobileNo());
-	        }
+				existUser.setMobileNo(userDTO.getMobileNo());
+			}
 
-	        if (userDTO.getAlternateNo() != null && !userDTO.getAlternateNo().isEmpty()) {
-	            if (!userDTO.getAlternateNo().matches("[6-9][0-9]{9}"))
-	                throw new IllegalArgumentException("Alternate number must be a valid 10-digit Indian number.");
-	            existUser.setAlternateNo(userDTO.getAlternateNo());
-	        }
+			if (userDTO.getAlternateNo() != null && !userDTO.getAlternateNo().isEmpty()) {
+				if (!userDTO.getAlternateNo().matches("[6-9][0-9]{9}"))
+					throw new IllegalArgumentException("Alternate number must be a valid 10-digit Indian number.");
+				existUser.setAlternateNo(userDTO.getAlternateNo());
+			}
 
-	        if (userDTO.getState() != null && !userDTO.getState().trim().isEmpty())
-	            existUser.setState(userDTO.getState());
+			if (userDTO.getState() != null && !userDTO.getState().trim().isEmpty())
+				existUser.setState(userDTO.getState());
 
-	        // === Save user ===
-	        userRepository.save(existUser);
-	        return "Updated";
-	    } else {
-	        return "Not Updated";
-	    }
+			// === Save user ===
+			userRepository.save(existUser);
+			return "Updated";
+		} else {
+			return "Not Updated";
+		}
 	}
 
 	// ========================= Delete User =========================
@@ -485,4 +489,5 @@ public class UserServiceImpl implements UserService {
 			nomineeRepository.saveAll(nomineeList);
 		}
 	}
+	
 }

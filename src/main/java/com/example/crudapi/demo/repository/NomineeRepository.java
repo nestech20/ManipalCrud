@@ -10,4 +10,8 @@ public interface NomineeRepository extends JpaRepository<Nominee, Long> {
 
 	List<Nominee> findByUserId(Long id);
 
+	List<Nominee> findByUserIdAndStatus(Long id, Character A);
+
+	List<Nominee> findByStatus(Character status);
+
 }
