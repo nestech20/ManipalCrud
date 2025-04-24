@@ -1,0 +1,204 @@
+### Overview of the Application
+- **Technology:** Spring Boot is a framework that simplifies the setup and development of new Spring applications by providing production-ready features and a convention-over-configuration approach.
+- **Type:** RESTful application enables interaction between a client and server using standard HTTP methods.
+- **Functionality:** The application implements basic CRUD operations for managing users, such as creating new users, reading user data, updating existing users, and deleting (soft-deleting) users.
+- **Components:** 
+  - **Controller Layer:** Receives requests and sends responses. It defines endpoints for client interaction.
+  - **Service Layer:** Contains business logic that processes data before saving or retrieving it from the database.
+  - **DTOs (Data Transfer Objects):** Used to transfer data between layers, ensuring a clear contract for data exchange and preventing over-fetching of data.
+  - **Entity Layer:** Defines the structure of data as it is stored in the database.
+  - **ResponseHandler:** Standardizes the format of API responses, improving consistency and readability.
+
+### 1. UserController Class
+- **Purpose:** The `UserController` class is responsible for handling incoming HTTP requests related to users. It acts as the interface between the client and the server's business logic.
+
+#### Example of `UserController`
+```java
+@RestController
+@RequestMapping("/users")
+public class UserController {
+
+    @Autowired
+    private UserServiceImpl userService;
+
+    // Endpoint to get all users
+    @GetMapping
+    public ResponseHandler getAllUsers() {
+        // Implementation...
+    }
+    
+    // Other endpoint methods...
+}
+```
+
+### Controller Methods Overview
+
+- **getAllUsers():** 
+  - **Purpose:** Retrieves all users from the database.
+  - **Example:**
+    - **HTTP Method:** GET
+    - **Response:** A JSON representation of the list of users.
+    ```json
+    {
+      "data": [
+        {"id": 1, "name": "John Doe", "email": "john@example.com"},
+        {"id": 2, "name": "Jane Smith", "email": "jane@example.com"}
+      ],
+      "message": "Success",
+      "status": true
+    }
+    ```
+
+- **addUser():**
+  - **Purpose:** Allows the client to add a new user.
+  - **Example:**
+    - **HTTP Method:** POST
+    - **Request Body:**
+    ```json
+    {
+      "name": "Alice Johnson",
+      "email": "alice@example.com"
+    }
+    ```
+    - **Response:** A success message indicating that the user has been added.
+    ```json
+    {
+      "data": "User successfully added.",
+      "message": "Success",
+      "status": true
+    }
+    ```
+
+- **getAllUsersPaginated():**
+  - **Purpose:** Retrieves a paginated list of users.
+  - **Example:**
+    - **Request Body:** Pagination parameters.
+    ```json
+    {
+      "pageNo": 1,
+      "pageSize": 10
+    }
+    ```
+    - **Response:** A subset of user records based on the specified pagination.
+    
+- **getUserById():**
+  - **Purpose:** Fetches a user’s details based on their unique ID.
+  - **Example:**
+    - **HTTP Method:** GET
+    - **Path:** `/users/1`
+    - **Response:**
+    ```json
+    {
+      "data": {"id": 1, "name": "John Doe", "email": "john@example.com"},
+      "message": "Success",
+      "status": true
+    }
+    ```
+
+- **deleteUser():**
+  - **Purpose:** Soft-delete a user by marking them inactive.
+  - **Example:**
+    - **HTTP Method:** DELETE
+    - **Path:** `/users/1`
+    - **Response:**
+    ```json
+    {
+      "message": "User with id 1 has been marked inactive"
+    }
+    ```
+
+- **updateUser():**
+  - **Purpose:** Updates an existing user's data.
+  - **Example:**
+    - **HTTP Method:** PUT
+    - **Path:** `/users/1`
+    - **Request Body:**
+    ```json
+    {
+      "name": "John D.",
+      "email": "john.d@example.com"
+    }
+    ```
+    - **Response:**
+    ```json
+    {
+      "data": "User updated successfully.",
+      "message": "Success",
+      "status": true
+    }
+    ```
+
+### 2. UserServiceImpl Class (Service Layer)
+- **Functions Include:**
+  - Houses the business logic for interacting with user data in the database.
+  - Interfaces with repositories to perform CRUD operations.
+
+#### Example of `UserServiceImpl`
+```java
+@Service
+public class UserServiceImpl {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    public List<UserDTO> getAllUser() {
+        // Fetches user data from the database
+    }
+
+    public String addUser(UserDTO userDTO) {
+        // Logic to add a new user
+    }
+
+    // Other service methods...
+}
+```
+
+### 3. UserDTO and User
+- **UserDTO:** 
+  - A simple POJO (Plain Old Java Object) that transfers only necessary fields to avoid over-fetching.
+  - **Example:**
+    ```java
+    public class UserDTO {
+        private Long id;
+        private String name;
+        private String email;
+        // Getters and Setters
+    }
+    ```
+
+- **User:** 
+  - Represents the user entity in the database, potentially containing additional fields like timestamps.
+  - **Example:**
+    ```java
+    @Entity
+    public class User {
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private Long id;
+        private String name;
+        private String email;
+        private boolean isActive; // For soft deletes
+        // Getters and Setters
+    }
+    ```
+
+### 4. ResponseHandler Class
+- **Purpose:** Standardizes the response format for API calls, ensuring consistency across different endpoints.
+
+#### Example of `ResponseHandler`
+```java
+public class ResponseHandler {
+    private Object data;
+    private String message;
+    private boolean status;
+
+    // Getters and Setters
+}
+```
+
+### Summary Flow
+1. **Request Handling:** The controller receives the HTTP request (GET, POST, PUT, DELETE).
+2. **Service Layer Invocation:** The controller calls service layer methods to process the request.
+3. **Database Interaction:** The service layer communicates with the repository to perform operations on the database.
+4. **Response Formatting:** The ResponseHandler formats the result and sends it back to the client in a standardized JSON format.
+
