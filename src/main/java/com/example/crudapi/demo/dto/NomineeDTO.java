@@ -2,81 +2,88 @@ package com.example.crudapi.demo.dto;
 
 import java.time.LocalDate;
 
-import jakarta.persistence.Column;
-
+/**
+ * Data Transfer Object for Nominee entity.
+ * Used for transferring nominee data between layers.
+ */
 public class NomineeDTO {
-	
-	private Long id;
-	
-	private String firstName;
 
-     private String lastName;
+    /** Unique identifier for the nominee (used for update operations) */
+    private Long id;
 
-     private LocalDate dob;
+    /** First name of the nominee */
+    private String firstName;
 
-     private String mobileNo;                                                                                                                                                                                                                  
-   
-     private String relationship;
-     
- 	
+    /** Last name of the nominee */
+    private String lastName;
+
+    /** Date of birth of the nominee */
+    private LocalDate dob;
+
+    /** Mobile number of the nominee */
+    private String mobileNo;
+
+    /** Relationship of the nominee to the user (e.g., Spouse, Child, Parent) */
+    private String relationship;
+
+    /** Status of the nominee (active/inactive) */
     private Character status;
-     
-     public Character getStatus() {
-		return status;
-	}
 
-	public void setStatus(Character status) {
-		this.status = status;
-	}
+    // --- Getters and Setters ---
 
+    public Long getId() {
+        return id;
+    }
 
-	public String getFirstName() {
-		return firstName;
-	}
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-	public void setFirstName(String firstName) {
-		this.firstName = firstName;
-	}
+    public String getFirstName() {
+        return firstName;
+    }
 
-	public String getLastName() {
-		return lastName;
-	}
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
 
-	public void setLastName(String lastName) {
-		this.lastName = lastName;
-	}
+    public String getLastName() {
+        return lastName;
+    }
 
-	public LocalDate getDob() {
-		return dob;
-	}
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
 
-	public void setDob(LocalDate dob) {
-		this.dob = dob;
-	}
+    public LocalDate getDob() {
+        return dob;
+    }
 
-	public String getMobileNo() {
-		return mobileNo;
-	}
+    public void setDob(LocalDate dob) {
+        this.dob = dob;
+    }
 
-	public void setMobileNo(String mobileNo) {
-		this.mobileNo = mobileNo;
-	}
+    public String getMobileNo() {
+        return mobileNo;
+    }
 
-	public String getRelationship() {
-		return relationship;
-	}
+    public void setMobileNo(String mobileNo) {
+        this.mobileNo = mobileNo;
+    }
 
-	public void setRelationship(String relationship) {
-		this.relationship = relationship;
-	}
-   
-	  public Long getId() {
-			return id;
-		}
+    public String getRelationship() {
+        return relationship;
+    }
 
-		public void setId(Long id) {
-			this.id = id;
-		}
+    public void setRelationship(String relationship) {
+        this.relationship = relationship;
+    }
 
+    public Character getStatus() {
+        return status;
+    }
 
+    public void setStatus(Character status) {
+        this.status = status;
+    }
 }

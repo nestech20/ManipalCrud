@@ -1,112 +1,139 @@
 package com.example.crudapi.demo.entity;
 
 import java.time.LocalDate;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
+/**
+ * Entity representing a Nominee associated with a User.
+ */
 @Entity
 public class Nominee {
-	     @Id
-	     @GeneratedValue(strategy = GenerationType.IDENTITY)
-	     @Column(name = "nominee_id")
-         private Long id;
-	     
-	     @Column(name = "user_id")
-	     private Long userId;
-	     
-	     @Column(name = "firstName")
-         private String firstName;
-	     
-	     @Column(name = "lastName")
-         private String lastName;
-	     
-	     @Column(name = "dateOfBirth")
-         private LocalDate dob;
-	     
-	     @Column(name = "mobileNo")
-         private String mobileNo;                                                                                                                                                                                                                  
-	     
-	     @Column(name = "relationship")
-         private String relationship;
-	     
-	     @Column(name = "status")
-	     private Character status;
 
-		public Long getId() {
-			return id;
-		}
+    /**
+     * Primary key - Unique identifier for the nominee.
+     */
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "nominee_id")
+    private Long id;
 
-		public void setId(Long id) {
-			this.id = id;
-		}
+    /**
+     * Foreign key - References the associated User entity.
+     */
+    @Column(name = "user_id")
+    private Long userId;
 
-		public String getFirstName() {
-			return firstName;
-		}
+    /**
+     * Nominee's first name.
+     */
+    @Column(name = "firstName")
+    private String firstName;
 
-		public void setFirstName(String firstName) {
-			this.firstName = firstName;
-		}
+    /**
+     * Nominee's last name.
+     */
+    @Column(name = "lastName")
+    private String lastName;
 
-		public String getLastName() {
-			return lastName;
-		}
+    /**
+     * Nominee's date of birth.
+     */
+    @Column(name = "dateOfBirth")
+    private LocalDate dob;
 
-		public void setLastName(String lastName) {
-			this.lastName = lastName;
-		}
+    /**
+     * Nominee's mobile contact number.
+     */
+    @Column(name = "mobileNo")
+    private String mobileNo;
 
-		public LocalDate getDob() {
-			return dob;
-		}
+    /**
+     * Relationship of the nominee to the user (e.g., spouse, child).
+     */
+    @Column(name = "relationship")
+    private String relationship;
 
-		public void setDob(LocalDate dob) {
-			this.dob = dob;
-		}
+    /**
+     * Status of the nominee record (e.g., 'A' for active, 'I' for inactive).
+     */
+    @Column(name = "status")
+    private Character status;
 
-		public String getMobileNo() {
-			return mobileNo;
-		}
+    // --- Getters and Setters ---
 
-		public void setMobileNo(String mobileNo) {
-			this.mobileNo = mobileNo;
-		}
+    public Long getId() {
+        return id;
+    }
 
-		public String getRelationship() {
-			return relationship;
-		}
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-		public void setRelationship(String relationship) {
-			this.relationship = relationship;
-		}
+    public String getFirstName() {
+        return firstName;
+    }
 
-		public Long getUserId() {
-			return userId;
-		}
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
 
-		public void setUserId(Long userId) {
-			this.userId = userId;
-		}
+    public String getLastName() {
+        return lastName;
+    }
 
-		public Character getStatus() {
-			return status;
-		}
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
 
-		public void setStatus(Character status) {
-			this.status = status;
-		}
+    public LocalDate getDob() {
+        return dob;
+    }
 
-		public void setStatus(Object status2) {
-			// TODO Auto-generated method stub
-			
-		}
-		
-		
-	     
-		
-	     
+    public void setDob(LocalDate dob) {
+        this.dob = dob;
+    }
+
+    public String getMobileNo() {
+        return mobileNo;
+    }
+
+    public void setMobileNo(String mobileNo) {
+        this.mobileNo = mobileNo;
+    }
+
+    public String getRelationship() {
+        return relationship;
+    }
+
+    public void setRelationship(String relationship) {
+        this.relationship = relationship;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public Character getStatus() {
+        return status;
+    }
+
+    public void setStatus(Character status) {
+        this.status = status;
+    }
+
+    /**
+     * Overloaded method placeholder (possibly unused).
+     * Consider removing if not required.
+     */
+    public void setStatus(Object status2) {
+        // TODO Auto-generated method stub
+    }
 }

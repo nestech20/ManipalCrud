@@ -5,21 +5,55 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.example.crudapi.demo.dto.UserDTO;
 import com.example.crudapi.demo.entity.User;
 
-public interface UserRepository extends JpaRepository<User,Long>{
+/**
+ * Repository interface for User entity.
+ * Provides basic CRUD operations along with custom query methods.
+ */
+public interface UserRepository extends JpaRepository<User, Long> {
 
-	List<User> findByStatus(char c);
+    /**
+     * Retrieves all users with the specified status.
+     *
+     * @param c status (e.g., 'A' for Active, 'I' for Inactive)
+     * @return list of users with the given status
+     */
+    List<User> findByStatus(char c);
 
-	Optional<User> findByIdAndStatus(Long id, char c);
+    /**
+     * Retrieves a user by ID and status.
+     *
+     * @param id user ID
+     * @param c status
+     * @return an Optional containing the user if found
+     */
+    Optional<User> findByIdAndStatus(Long id, char c);
 
-	User findByEmail(String email);
+    /**
+     * Finds a user by their email address.
+     *
+     * @param email the user's email
+     * @return the User entity
+     */
+    User findByEmail(String email);
 
-	User findByPanNo(String panNo);
+    /**
+     * Finds a user by their PAN number.
+     *
+     * @param panNo the PAN number
+     * @return the User entity
+     */
+    User findByPanNo(String panNo);
 
-	static User findByMobileNo(String mobNo) {
-		return null;
-	}
-
+    /**
+     * (Currently unused) Static method stub for mobile number lookup.
+     * Note: This method does not work as intended and should be removed or refactored.
+     *
+     * @param mobNo the user's mobile number
+     * @return null (placeholder)
+     */
+    static User findByMobileNo(String mobNo) {
+        return null;
+    }
 }

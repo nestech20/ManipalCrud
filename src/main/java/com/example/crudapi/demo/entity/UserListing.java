@@ -1,12 +1,37 @@
 package com.example.crudapi.demo.entity;
 
+/**
+ * Encapsulates pagination, sorting, and filtering parameters
+ * for listing User entities.
+ */
 public class UserListing {
+
+    /**
+     * The page number to fetch (0-based index).
+     */
 	private int pageNo;
+
+    /**
+     * The number of records per page.
+     */
 	private int pageSize;
+
+    /**
+     * Field name to sort by (e.g., "fullName", "email").
+     */
 	private String sortBy;
-	private String sortOrder; // ASC or DESC
-	
+
+    /**
+     * Sort direction: "ASC" for ascending or "DESC" for descending.
+     */
+	private String sortOrder;
+
+    /**
+     * Filtering criteria for user listing.
+     */
 	private UserFilter userFilter;
+
+    // --- Getters and Setters ---
 
 	public int getPageNo() {
 		return pageNo;
@@ -47,6 +72,4 @@ public class UserListing {
 	public void setUserFilter(UserFilter userFilter) {
 		this.userFilter = userFilter;
 	}
-	
-
 }
