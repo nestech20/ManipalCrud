@@ -1,0 +1,55 @@
+### 📝 Project & Service Implementation Summary
+
+#### **Project Overview:**
+- Developing a **Spring Boot CRUD API** for managing **User** and **Nominee** entities.
+- Features include robust validation, dynamic filtering, and pagination support.
+
+---
+
+#### **Service Layer (`UserServiceImpl`) Highlights:**
+
+1. **User Fetching:**
+   - Implemented `fetchAllProposerByStringBuilder` method for:
+     - **Dynamic Query Construction** using `StringBuilder` for filtering by **status**, **full name**, **email**, and **mobile number**.
+     - **Pagination**: Validity checks for `pageNo` and `pageSize`, using `setFirstResult` and `setMaxResults`.
+     - **Sorting**: Supports sorting with `sortBy` parameter, defaulting to descending order.
+     - **Edge Case Handling**: Throws exceptions for invalid pagination values.
+
+2. **Adding a New User:**
+   - Developed `addUser` method with:
+     - **User Validation**: Checks for required fields (e.g., **full name**, **email**, **mobile number**) with regex validation for formatting and uniqueness.
+     - **Nominee Validation**: Ensures only one nominee can be associated with a user.
+     - **Data Persistence**: Saves validated user and nominee data to `userRepository` and `nomineeRepository`.
+
+---
+
+### **Takeaways:**
+
+- Mastery of **dynamic query building** and **pagination**.
+- Implementation of **robust validations** ensuring data integrity.
+- Established **error handling** for informative API responses.
+
+---
+
+### **Next Steps:**
+
+- **Optimize Count Query**: Use `COUNT(*)` for pagination count logic.
+- **DTO Mapping**: Return a **UserDTO** instead of entities post-creation.
+- **Refactor Error Handling**: Modularize validation logic into helper methods.
+
+---
+
+### **Reflection:**
+- Utilized dynamic queries and pagination effectively for user fetching.
+- Ensured user data integrity through comprehensive validation strategies.
+- Aim to introduce **unit tests** for the validation logic and service methods.
+
+---
+
+#### **Key Concepts Learned:**
+- **StringBuilder** for dynamic queries
+- Pagination and sorting handling
+- Advanced input validation
+- Integration of multiple repositories (`UserRepository`, `NomineeRepository`)
+- Handling one-to-many relationships between users and nominees
+
