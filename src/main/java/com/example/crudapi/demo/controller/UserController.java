@@ -1,5 +1,6 @@
 package com.example.crudapi.demo.controller;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,6 +13,9 @@ import com.example.crudapi.demo.entity.User;
 import com.example.crudapi.demo.entity.UserListing;
 import com.example.crudapi.demo.response.ResponseHandler;
 import com.example.crudapi.demo.serviceimp.UserServiceImpl;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 @RequestMapping("/users") // Defines the base URL path for the user API
@@ -161,5 +165,27 @@ public class UserController {
 		}
 
 		return handler4;
+	}
+	
+	//
+	@GetMapping("/fileExport")
+	public void exportProposersToExcel(HttpServletResponse response) throws ServletException, IOException {
+		
+
+//		try {
+//			String filePath = "C:/Excel/proposers_data.xlsx";
+//			proposerService.exportProposersToExcel(filePath);
+//			return "Excel file created successfully at " + filePath;
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//			return "Error occurred while generating the Excel file";
+//		}
+		
+		response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+		response.setHeader("Content-Disposition", "attachment; filename=user_data.xlsx");
+
+		
+		userService.exportProposersToExcel(response);
+
 	}
 }

@@ -2,6 +2,7 @@ package com.example.crudapi.demo.dto;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.example.crudapi.demo.enums.Gender;
@@ -76,12 +77,19 @@ public class UserDTO {
 
     /** Flag indicating if nominee is being updated (Y/N) */
     private Character isUpdatingNominee;
+    
+ // --- Constructor mapping the result ---
+    public UserDTO() {
+        // Initialize the nominees list if needed
+        this.nominees = new ArrayList<>();
+    }
 
     // --- Getters and Setters ---
 
 	public String getFullName() {
 		return fullName;
 	}
+
 
 	public void setFullName(String fullName) {
 		this.fullName = fullName;

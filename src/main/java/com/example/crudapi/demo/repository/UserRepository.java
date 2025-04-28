@@ -4,7 +4,9 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
+import com.example.crudapi.demo.dto.UserDTO;
 import com.example.crudapi.demo.entity.User;
 
 /**
@@ -56,4 +58,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     static User findByMobileNo(String mobNo) {
         return null;
     }
+    
+    
+    // Custom query to fetch active users with their nominee details
+//    @Query("SELECT u FROM User u JOIN u.nominees n WHERE u.status = 'Y'")
+//    List<UserDTO> getAllActiveUsersWithNominees();
 }

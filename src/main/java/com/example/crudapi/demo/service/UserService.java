@@ -1,10 +1,15 @@
 package com.example.crudapi.demo.service;
 
+import java.io.IOException;
 import java.util.List;
 
 import com.example.crudapi.demo.dto.UserDTO;
 import com.example.crudapi.demo.entity.User;
 import com.example.crudapi.demo.entity.UserListing;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletResponse;
 
 public interface UserService {
     
@@ -29,4 +34,6 @@ public interface UserService {
     // Takes a UserListing object (with filter, pagination, etc.) as input.
     // Returns a list of User entities.
     List<User> fetchAllProposerByStringBuilder(UserListing listing);
+    
+    public void exportProposersToExcel(HttpServletResponse response) throws ServletException,IOException;
 }
