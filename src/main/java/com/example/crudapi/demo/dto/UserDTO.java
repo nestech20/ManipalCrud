@@ -15,6 +15,8 @@ import com.example.crudapi.demo.enums.Title;
 public class UserDTO {
 
     // --- User Details ---
+	
+	 private long userId;
 
     /** Full name of the user */
     private String fullName;
@@ -78,7 +80,17 @@ public class UserDTO {
     /** Flag indicating if nominee is being updated (Y/N) */
     private Character isUpdatingNominee;
     
- // --- Constructor mapping the result ---
+    
+    
+ public long getUserId() {
+		return userId;
+	}
+
+	public void setUserId(long userId) {
+		this.userId = userId;
+	}
+
+	// --- Constructor mapping the result ---
     public UserDTO() {
         // Initialize the nominees list if needed
         this.nominees = new ArrayList<>();

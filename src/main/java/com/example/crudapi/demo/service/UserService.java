@@ -1,39 +1,76 @@
 package com.example.crudapi.demo.service;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
+
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.crudapi.demo.dto.UserDTO;
 import com.example.crudapi.demo.entity.User;
 import com.example.crudapi.demo.entity.UserListing;
 
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletResponse;
 
 public interface UserService {
-    
-    // POST method to add a new user. Takes a UserDTO as input.
-    // Returns a string indicating success or failure.
+
+    /**
+     * Adds a new user to the system.
+     *
+     * @param userDTO the data transfer object containing user information
+     * @return a success message or relevant error description
+     */
     String addUser(UserDTO userDTO);
-    
-    // GET method to retrieve all users. Returns a list of UserDTO objects.
+
+    /**
+     * Retrieves all users (typically active ones).
+     *
+     * @return a list of UserDTOs representing all users
+     */
     List<UserDTO> getAllUser();
-    
-    // GET method to retrieve a user by ID. Returns a UserDTO.
+
+    /**
+     * Retrieves a specific user by their unique ID.
+     *
+     * @param id the unique identifier of the user
+     * @return a UserDTO containing user information
+     */
     UserDTO getUserById(Long id);
-    
-    // PUT method to update an existing user. Takes a user ID and a UserDTO as input.
-    // Returns a string indicating success or failure.
+
+    /**
+     * Updates an existing user's information.
+     *
+     * @param id the unique identifier of the user to be updated
+     * @param userDTO the data transfer object containing updated user details
+     * @return a success message or relevant error description
+     */
     String updateUser(Long id, UserDTO userDTO);
-    
-    // DELETE method to delete a user by ID. Returns nothing.
+
+    /**
+     * Performs a soft delete (or actual delete, depending on implementation) of a user by ID.
+     *
+     * @param id the unique identifier of the user to be deleted
+     */
     void delete(Long id);
-    
-    // Method to fetch all proposer users using StringBuilder for dynamic query building.
-    // Takes a UserListing object (with filter, pagination, etc.) as input.
-    // Returns a list of User entities.
+
+    /**
+     * Retrieves a filtered and paginated list of proposer users using native SQL query
+     * constructed with StringBuilder.
+     *
+     * @param listing the UserListing object containing filter, pagination, and sort criteria
+     * @return a list of User entities matching the given criteria
+     */
     List<User> fetchAllProposerByStringBuilder(UserListing listing);
-    
-    public void exportProposersToExcel(HttpServletResponse response) throws ServletException,IOException;
+
+    /**
+     * Exports the filtered list of proposers to an Excel file and writes it to the response output stream.
+     *
+     * @param response the HttpServletResponse to write the Excel content to
+     * @throws ServletException if a servlet-specific error occurs
+     * @throws IOException if an input or output error is detected
+     */
+    String exportUsersToExcel() throws ServletException, IOException;
+   
+    void importExcelToUser(InputStream file) throws IOException;
 }
+  

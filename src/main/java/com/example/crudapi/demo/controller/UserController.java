@@ -1,11 +1,23 @@
 package com.example.crudapi.demo.controller;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 // Importing DTO, entity, response handler, and service classes
 import com.example.crudapi.demo.dto.UserDTO;
@@ -15,7 +27,6 @@ import com.example.crudapi.demo.response.ResponseHandler;
 import com.example.crudapi.demo.serviceimp.UserServiceImpl;
 
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 @RequestMapping("/users") // Defines the base URL path for the user API
@@ -59,7 +70,6 @@ public class UserController {
 			handler.setMessage("Success");
 			handler.setStatus(true);
 			handler.setData(data);
-			
 
 		} catch (IllegalArgumentException e) {
 			// Handles specific validation errors for invalid input
@@ -93,7 +103,6 @@ public class UserController {
 			handler.setMessage("Success");
 			handler.setStatus(true);
 			handler.setData(users);
-			
 
 			// If there are filters applied, return the filtered count
 			if (userListing.getUserFilter() != null) {
@@ -126,7 +135,7 @@ public class UserController {
 			handler3.setMessage("Success");
 			handler3.setStatus(true);
 			handler3.setData(xyz3);
-			
+
 		} catch (Exception e) {
 			// Handles errors if any during the operation
 			handler3.setData(new ArrayList<>());
@@ -166,26 +175,54 @@ public class UserController {
 
 		return handler4;
 	}
+
+	// ================= Export USER Table in Excel =================
+//	@GetMapping("/fileExport")
+//	public void exportProposersToExcel(HttpServletResponse response) throws ServletException, IOException {
+//
+//		response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+//		response.setHeader("Content-Disposition", "attachment; filename=user_data.xlsx");
+//
+//		userService.exportProposersToExcel(response);
+//
+//	}
 	
-	//
 	@GetMapping("/fileExport")
-	public void exportProposersToExcel(HttpServletResponse response) throws ServletException, IOException {
-		
-
-//		try {
-//			String filePath = "C:/Excel/proposers_data.xlsx";
-//			proposerService.exportProposersToExcel(filePath);
-//			return "Excel file created successfully at " + filePath;
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//			return "Error occurred while generating the Excel file";
-//		}
-		
-		response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-		response.setHeader("Content-Disposition", "attachment; filename=user_data.xlsx");
-
-		
-		userService.exportProposersToExcel(response);
-
+	public ResponseHandler exportProposersToExcel() {
+	    ResponseHandler handler = new ResponseHandler();
+	    
+	    try {
+	    	String filepath = userService.exportUsersToExcel();
+	        handler.setMessage("File exported successfully.");
+	        handler.setStatus(true);
+	        handler.setData(filepath);  // No data to return, just the success message
+	    } catch (IOException | ServletException e) {
+	        // In case of failure, return a failure message
+	        handler.setMessage("Failed: " + e.getMessage());
+	        handler.setStatus(false);
+	    }
+	    
+	    return handler;
 	}
+
+	@PostMapping(value="/fileImport", consumes = "multipart/form-data")
+	public ResponseEntity<ResponseHandler> importUsersFromExcel(@RequestParam("file") MultipartFile file) {
+	    ResponseHandler handler = new ResponseHandler();
+
+	    try (InputStream inputStream = file.getInputStream()) {
+	        userService.importExcelToUser(inputStream);
+	        handler.setMessage("Users imported successfully.");
+	        handler.setStatus(true);
+	        handler.setData(null); // Optional: Could return a count or list summary
+	    } catch (IOException e) {
+	        handler.setMessage("Import failed: " + e.getMessage());
+	        handler.setStatus(false);
+	        handler.setData(null);
+	    }
+
+	    return ResponseEntity.ok(handler);
+	}
+
+
+
 }

@@ -1,14 +1,24 @@
 package com.example.crudapi.demo.serviceimp;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -32,8 +42,6 @@ import com.example.crudapi.demo.service.UserService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletOutputStream;
-import jakarta.servlet.http.HttpServletResponse;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -475,8 +483,9 @@ public class UserServiceImpl implements UserService {
 		}
 	}
 
+	// ================= Export USER Table in Excel =================
 	@Override
-	public void exportProposersToExcel(HttpServletResponse response) throws ServletException,IOException {
+	public String exportUsersToExcel() throws ServletException, IOException {
 
 		List<User> allUser = userRepository.findByStatus('Y');
 
@@ -484,54 +493,117 @@ public class UserServiceImpl implements UserService {
 
 		XSSFSheet sheet = workbook.createSheet("User_Data");
 
+//		XSSFRow headerRow = sheet.createRow(0);
+
+//		headerRow.createCell(0).setCellValue("User ID");
+//		headerRow.createCell(1).setCellValue("Title");
+//		headerRow.createCell(2).setCellValue("FullName");
+//		headerRow.createCell(3).setCellValue("Gender");
+//		headerRow.createCell(4).setCellValue("Date of Birth");
+//		headerRow.createCell(5).setCellValue("PAN Number");
+//		headerRow.createCell(6).setCellValue("Status");
+//		headerRow.createCell(7).setCellValue("Email");
+//		headerRow.createCell(8).setCellValue("Mobile No");
+//		headerRow.createCell(9).setCellValue("Alternate No");
+//		headerRow.createCell(10).setCellValue("Address");
+//		headerRow.createCell(11).setCellValue("Pincode");
+//		headerRow.createCell(12).setCellValue("City");
+//		headerRow.createCell(13).setCellValue("State");
+
+		// Define headers in an array
+		String[] headers = {
+			    "User ID", "Title", "Full Name", "Gender", "Date of Birth", "PAN Number", "Annual Income",
+			    "Email", "Mobile No", "Alternate No", "Address", "Pincode", "City", "State", "Status"
+			};
+
+		// Create header row
 		XSSFRow headerRow = sheet.createRow(0);
 
-		headerRow.createCell(0).setCellValue("User ID");
-		headerRow.createCell(1).setCellValue("Title");
-		headerRow.createCell(2).setCellValue("FullName");
-		headerRow.createCell(3).setCellValue("Gender");
-		headerRow.createCell(4).setCellValue("Date of Birth");
-		headerRow.createCell(5).setCellValue("PAN Number");
-		headerRow.createCell(6).setCellValue("Status");
-		headerRow.createCell(7).setCellValue("Email");
-		headerRow.createCell(8).setCellValue("Mobile No");
-		headerRow.createCell(9).setCellValue("Alternate No");
-		headerRow.createCell(10).setCellValue("Address");
-		headerRow.createCell(11).setCellValue("Pincode");
-		headerRow.createCell(12).setCellValue("City");
-		headerRow.createCell(13).setCellValue("State");
-
-		int rowIndex = 1;
-
-		for (User user : allUser) {
-
-			Row row = sheet.createRow(rowIndex++);
-
-			row.createCell(0).setCellValue(user.getId());
-			row.createCell(1).setCellValue(user.getTitle().toString());
-			row.createCell(2).setCellValue(user.getFullName());
-			row.createCell(3).setCellValue(user.getGender().toString());
-			row.createCell(4).setCellValue(user.getDob().toString());
-			row.createCell(5).setCellValue(user.getPanNo());
-			row.createCell(6).setCellValue(user.getStatus());
-			row.createCell(7).setCellValue(user.getEmail());
-			row.createCell(8).setCellValue(user.getMobileNo());
-			row.createCell(9).setCellValue(user.getAlternateNo());
-			row.createCell(10).setCellValue(user.getAddress());
-			row.createCell(11).setCellValue(user.getPincode());
-			row.createCell(12).setCellValue(user.getCity());
-			row.createCell(13).setCellValue(user.getState());
+		// Fill headers using loop
+		for (int i = 0; i < headers.length; i++) {
+			headerRow.createCell(i).setCellValue(headers[i]);
 		}
 
-//		try(FileOutputStream fileOutput=new FileOutputStream(filePath))
-//		{
-//			workbook.write(fileOutput);
-//		}
+		String SystemPath = "C:/ExcelFiles";
+		new File(SystemPath).mkdirs();
 
-		ServletOutputStream output = response.getOutputStream();
-		workbook.write(output);
+//		String timestamp = LocalDateTime.now()
+//	            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd_hh-mm-ss"));
+		String filename = "user_data_" + UUID.randomUUID().toString().substring(0, 6) + ".xlsx";
+		String filepath = SystemPath + "/" + filename;
+
+		try (FileOutputStream uploadFile = new FileOutputStream(filepath)) {
+			workbook.write(uploadFile);
+		}
+
 		workbook.close();
-		output.close();
+
+		return filepath;
 	}
+
+	@Override
+	public void importExcelToUser(InputStream file) throws IOException {
+	    List<User> userList = new ArrayList<>();
+	    Workbook workbook = WorkbookFactory.create(file);
+	    Sheet sheet = workbook.getSheetAt(0);
+	    DataFormatter formatter = new DataFormatter();
+
+	    for (Row row : sheet) {
+	        if (row.getRowNum() == 0) continue; // Skip header
+
+	        User user = new User();
+
+	        // Title (Enum)
+	        String titleVal = formatter.formatCellValue(row.getCell(1));
+	        if (!titleVal.isBlank()) {
+	            user.setTitle(Title.valueOf(titleVal.trim().toUpperCase()));
+	        }
+
+	        user.setFullName(formatter.formatCellValue(row.getCell(2)));
+
+	        // Gender (Enum)
+	        String genderVal = formatter.formatCellValue(row.getCell(3));
+	        if (!genderVal.isBlank()) {
+	            user.setGender(Gender.valueOf(genderVal.trim().toUpperCase()));
+	        }
+
+	        // DOB (date)
+	        Cell dobCell = row.getCell(4);
+	        if (dobCell != null && DateUtil.isCellDateFormatted(dobCell)) {
+	            user.setDob(dobCell.getLocalDateTimeCellValue().toLocalDate());
+	        }
+
+	        user.setPanNo(formatter.formatCellValue(row.getCell(5)));
+
+	        String incomeVal = formatter.formatCellValue(row.getCell(6));
+	        if (!incomeVal.isBlank()) {
+	            user.setAnnualIncome(Long.parseLong(incomeVal));
+	        }
+
+	        user.setEmail(formatter.formatCellValue(row.getCell(7)));
+	        user.setMobileNo(formatter.formatCellValue(row.getCell(8)));
+	        user.setAlternateNo(formatter.formatCellValue(row.getCell(9)));
+	        user.setAddress(formatter.formatCellValue(row.getCell(10)));
+
+	        String pincodeVal = formatter.formatCellValue(row.getCell(11));
+	        if (!pincodeVal.isBlank()) {
+	            user.setPincode(Long.parseLong(pincodeVal));
+	        }
+
+	        user.setCity(formatter.formatCellValue(row.getCell(12)));
+	        user.setState(formatter.formatCellValue(row.getCell(13)));
+
+	        String statusVal = formatter.formatCellValue(row.getCell(14));
+	        if (!statusVal.isBlank()) {
+	            user.setStatus(statusVal.trim().charAt(0));
+	        }
+
+	        userList.add(user);
+	    }
+
+	    workbook.close();
+	    userRepository.saveAll(userList);
+	}
+
 
 }
