@@ -169,7 +169,7 @@ public class UserController {
 		} catch (Exception e) {
 			// Handles errors if any during the operation
 			handler4.setData(new ArrayList<>());
-			handler4.setMessage("Failed");
+			handler4.setMessage("Failed" + e.getMessage());
 			handler4.setStatus(false);
 		}
 
@@ -204,8 +204,8 @@ public class UserController {
 	    
 	    return handler;
 	}
-
-	@PostMapping(value="/fileImport", consumes = "multipart/form-data")
+	
+	@PostMapping(value = "/fileImport", consumes = "multipart/form-data")
 	public ResponseEntity<ResponseHandler> importUsersFromExcel(@RequestParam("file") MultipartFile file) {
 	    ResponseHandler handler = new ResponseHandler();
 
@@ -213,16 +213,28 @@ public class UserController {
 	        userService.importExcelToUser(inputStream);
 	        handler.setMessage("Users imported successfully.");
 	        handler.setStatus(true);
-	        handler.setData(null); // Optional: Could return a count or list summary
-	    } catch (IOException e) {
-	        handler.setMessage("Import failed: " + e.getMessage());
-	        handler.setStatus(false);
 	        handler.setData(null);
+	        return ResponseEntity.ok(handler);
+
+	    } catch (RuntimeException e) {
+	        handler.setMessage("Validation failed");
+	        handler.setStatus(false);
+	        handler.setErrors(List.of(e.getMessage()));
+	        return ResponseEntity.badRequest().body(handler);
+
+	    } catch (IOException e) {
+	        handler.setMessage("IO Error while reading file");
+	        handler.setStatus(false);
+	        handler.setErrors(List.of(e.getMessage()));
+	        return ResponseEntity.status(500).body(handler);
+
+	    } catch (Exception e) {
+	        handler.setMessage("Unexpected error occurred");
+	        handler.setStatus(false);
+	        handler.setErrors(List.of(e.getMessage()));
+	        return ResponseEntity.status(500).body(handler);
 	    }
-
-	    return ResponseEntity.ok(handler);
 	}
-
 
 
 }

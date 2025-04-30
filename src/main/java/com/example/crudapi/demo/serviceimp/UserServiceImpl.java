@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,7 +15,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -55,8 +57,7 @@ public class UserServiceImpl implements UserService {
 	@Autowired
 	private EntityManager entityManager;
 
-	// ========================= Fetch Proposers by Filters and Sorting
-	// =========================
+	// ========== Fetch Proposers by Filters and Sorting =============
 	@Override
 	public List<User> fetchAllProposerByStringBuilder(UserListing listing) {
 		StringBuilder sb = new StringBuilder("SELECT u FROM User u WHERE u.status = 'Y'");
@@ -236,7 +237,6 @@ public class UserServiceImpl implements UserService {
 		}
 		adddto.setStatus(status);
 
-		// Set creation and update dates
 		adddto.setCreatedDate(userDTO.getCreatedDate());
 		adddto.setUpdatedDate(userDTO.getUpdatedDate());
 
@@ -452,8 +452,37 @@ public class UserServiceImpl implements UserService {
 				existUser.setEmail(userDTO.getEmail());
 			}
 
-			// Similar validations for PAN, pincode, and other fields...
-			// ... continue updating fields
+			if (userDTO.getGender() != null)
+				existUser.setGender(userDTO.getGender());
+
+			if (userDTO.getTitle() != null)
+				existUser.setTitle(userDTO.getTitle());
+
+			if (userDTO.getPanNo() != null && !userDTO.getPanNo().trim().isEmpty()) {
+				if (!userDTO.getPanNo().matches("[A-Z]{5}[0-9]{4}[A-Z]{1}"))
+					throw new IllegalArgumentException("PAN format is invalid.");
+				existUser.setPanNo(userDTO.getPanNo());
+			}
+
+			if (userDTO.getAnnualIncome() != null && userDTO.getAnnualIncome() > 0)
+				existUser.setAnnualIncome(userDTO.getAnnualIncome());
+
+			if (userDTO.getMobileNo() != null && userDTO.getMobileNo().matches("\\d{10}"))
+				existUser.setMobileNo(userDTO.getMobileNo());
+
+			if (userDTO.getAlternateNo() != null && userDTO.getAlternateNo().matches("\\d{10}"))
+				existUser.setAlternateNo(userDTO.getAlternateNo());
+
+			if (userDTO.getPincode() != null && userDTO.getPincode() > 100000 && userDTO.getPincode() < 999999)
+				existUser.setPincode(userDTO.getPincode());
+
+			if (userDTO.getState() != null && !userDTO.getState().trim().isEmpty())
+				existUser.setState(userDTO.getState());
+
+			if (userDTO.getStatus() != null && (userDTO.getStatus() == 'Y' || userDTO.getStatus() == 'N'))
+				existUser.setStatus(userDTO.getStatus());
+
+			existUser.setUpdatedDate(LocalDateTime.now()); // Always update modified timestamp
 
 			// Save the updated user entity
 			userRepository.save(existUser);
@@ -511,10 +540,8 @@ public class UserServiceImpl implements UserService {
 //		headerRow.createCell(13).setCellValue("State");
 
 		// Define headers in an array
-		String[] headers = {
-			    "User ID", "Title", "Full Name", "Gender", "Date of Birth", "PAN Number", "Annual Income",
-			    "Email", "Mobile No", "Alternate No", "Address", "Pincode", "City", "State", "Status"
-			};
+		String[] headers = { "User ID", "Title", "Full Name", "Gender", "Date of Birth", "PAN Number", "Annual Income",
+				"Email", "Mobile No", "Alternate No", "Address", "Pincode", "City", "State", "Status" };
 
 		// Create header row
 		XSSFRow headerRow = sheet.createRow(0);
@@ -540,70 +567,139 @@ public class UserServiceImpl implements UserService {
 
 		return filepath;
 	}
+	
+	// ================= Import USER Table in Excel =======
 
 	@Override
 	public void importExcelToUser(InputStream file) throws IOException {
 	    List<User> userList = new ArrayList<>();
+	    List<String> errorMessages = new ArrayList<>();
 	    Workbook workbook = WorkbookFactory.create(file);
 	    Sheet sheet = workbook.getSheetAt(0);
-	    DataFormatter formatter = new DataFormatter();
 
 	    for (Row row : sheet) {
 	        if (row.getRowNum() == 0) continue; // Skip header
 
-	        User user = new User();
-
-	        // Title (Enum)
-	        String titleVal = formatter.formatCellValue(row.getCell(1));
-	        if (!titleVal.isBlank()) {
-	            user.setTitle(Title.valueOf(titleVal.trim().toUpperCase()));
+	        // Check if the row is blank (all cells are empty)
+	        boolean isRowEmpty = true;
+	        for (Cell cell : row) {
+	            if (cell != null && cell.getCellType() != CellType.BLANK) {
+	                isRowEmpty = false;
+	                break;
+	            }
 	        }
+	        if (isRowEmpty) continue;  
+	        
+	        try {
+	            User user = new User();
 
-	        user.setFullName(formatter.formatCellValue(row.getCell(2)));
+	            // Title
+	            Cell titleCell = row.getCell(1);
+	            String titleVal = (titleCell != null && titleCell.getCellType() == CellType.STRING) ? titleCell.getStringCellValue().trim() : "";
+	            if (titleVal.isEmpty()) throw new IllegalArgumentException("Title is required at row " + row.getRowNum());
+	            user.setTitle(Title.valueOf(titleVal.toUpperCase()));
 
-	        // Gender (Enum)
-	        String genderVal = formatter.formatCellValue(row.getCell(3));
-	        if (!genderVal.isBlank()) {
-	            user.setGender(Gender.valueOf(genderVal.trim().toUpperCase()));
-	        }
+	            // Full Name
+	            Cell fullNameCell = row.getCell(2);
+	            String fullName = (fullNameCell != null && fullNameCell.getCellType() == CellType.STRING) ? fullNameCell.getStringCellValue().trim() : "";
+	            if (!fullName.matches("^[A-Za-z ]+$")) throw new IllegalArgumentException("Invalid full name at row " + row.getRowNum());
+	            user.setFullName(fullName);
 
-	        // DOB (date)
-	        Cell dobCell = row.getCell(4);
-	        if (dobCell != null && DateUtil.isCellDateFormatted(dobCell)) {
+	            // Gender
+	            Cell genderCell = row.getCell(3);
+	            String genderVal = (genderCell != null && genderCell.getCellType() == CellType.STRING) ? genderCell.getStringCellValue().trim() : "";
+	            user.setGender(Gender.valueOf(genderVal.toUpperCase()));
+
+	            // DOB
+	            Cell dobCell = row.getCell(4);
+	            if (!DateUtil.isCellDateFormatted(dobCell)) throw new IllegalArgumentException("DOB must be valid date at row " + row.getRowNum());
 	            user.setDob(dobCell.getLocalDateTimeCellValue().toLocalDate());
+
+	            // PAN No
+	            Cell panCell = row.getCell(5);
+	            String pan = panCell != null ? panCell.getStringCellValue().trim() : "";
+	            if (!pan.matches("^[A-Z]{5}[0-9]{4}[A-Z]$")) throw new IllegalArgumentException("Invalid PAN at row " + row.getRowNum());
+	            user.setPanNo(pan);
+
+	            // Income
+	            Cell incomeCell = row.getCell(6);
+	            if (incomeCell == null || incomeCell.getCellType() != CellType.NUMERIC) throw new IllegalArgumentException("Invalid income at row " + row.getRowNum());
+	            user.setAnnualIncome((long) incomeCell.getNumericCellValue());
+
+	            // Email
+	            Cell emailCell = row.getCell(7);
+	            String email = emailCell != null ? emailCell.getStringCellValue().trim() : "";
+	            if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) throw new IllegalArgumentException("Invalid email at row " + row.getRowNum());
+	            user.setEmail(email);
+
+	            // Mobile
+	            Cell mobileCell = row.getCell(8);
+	            String mobile = (mobileCell != null && mobileCell.getCellType() == CellType.NUMERIC) ?
+	                    BigDecimal.valueOf(mobileCell.getNumericCellValue()).toPlainString() :
+	                    (mobileCell != null ? mobileCell.getStringCellValue().trim() : "");
+	            if (!mobile.matches("^\\d{10}$")) throw new IllegalArgumentException("Invalid mobile no at row " + row.getRowNum());
+	            user.setMobileNo(mobile);
+
+	            // Alternate No (optional)
+	            Cell altCell = row.getCell(9);
+	            if (altCell != null) {
+	                String alt = (altCell.getCellType() == CellType.NUMERIC) ?
+	                        BigDecimal.valueOf(altCell.getNumericCellValue()).toPlainString() :
+	                        altCell.getStringCellValue().trim();
+	                if (!alt.isEmpty() && !alt.matches("^\\d{10}$")) {
+	                    throw new IllegalArgumentException("Invalid alternate number at row " + row.getRowNum());
+	                }
+	                user.setAlternateNo(alt.isEmpty() ? null : alt);
+	            }
+
+	            // Address
+	            Cell addressCell = row.getCell(10);
+	            String address = (addressCell != null) ? addressCell.getStringCellValue().trim() : "";
+	            if (address.isEmpty()) throw new IllegalArgumentException("Address is required at row " + row.getRowNum());
+	            user.setAddress(address);
+
+	            // Pincode
+	            Cell pinCell = row.getCell(11);
+	            long pincode = (pinCell != null && pinCell.getCellType() == CellType.NUMERIC) ? (long) pinCell.getNumericCellValue() : -1;
+	            if (pincode < 0) throw new IllegalArgumentException("Invalid pincode at row " + row.getRowNum());
+	            user.setPincode(pincode);
+
+	            // City
+	            Cell cityCell = row.getCell(12);
+	            String city = (cityCell != null) ? cityCell.getStringCellValue().trim() : "";
+	            if (city.isEmpty()) throw new IllegalArgumentException("City is required at row " + row.getRowNum());
+	            user.setCity(city);
+
+	            // State
+	            Cell stateCell = row.getCell(13);
+	            String state = (stateCell != null) ? stateCell.getStringCellValue().trim() : "";
+	            if (state.isEmpty()) throw new IllegalArgumentException("State is required at row " + row.getRowNum());
+	            user.setState(state);
+
+	            // Status
+	            Cell statusCell = row.getCell(14);
+	            String status = (statusCell != null) ? statusCell.getStringCellValue().trim() : "";
+	            if (status.isEmpty()) throw new IllegalArgumentException("Status is required at row " + row.getRowNum());
+	            user.setStatus(status.charAt(0));
+
+	            userList.add(user);
+
+	        } catch (Exception e) {
+	            errorMessages.add("Row " + row.getRowNum() + ": " + e.getMessage());
 	        }
-
-	        user.setPanNo(formatter.formatCellValue(row.getCell(5)));
-
-	        String incomeVal = formatter.formatCellValue(row.getCell(6));
-	        if (!incomeVal.isBlank()) {
-	            user.setAnnualIncome(Long.parseLong(incomeVal));
-	        }
-
-	        user.setEmail(formatter.formatCellValue(row.getCell(7)));
-	        user.setMobileNo(formatter.formatCellValue(row.getCell(8)));
-	        user.setAlternateNo(formatter.formatCellValue(row.getCell(9)));
-	        user.setAddress(formatter.formatCellValue(row.getCell(10)));
-
-	        String pincodeVal = formatter.formatCellValue(row.getCell(11));
-	        if (!pincodeVal.isBlank()) {
-	            user.setPincode(Long.parseLong(pincodeVal));
-	        }
-
-	        user.setCity(formatter.formatCellValue(row.getCell(12)));
-	        user.setState(formatter.formatCellValue(row.getCell(13)));
-
-	        String statusVal = formatter.formatCellValue(row.getCell(14));
-	        if (!statusVal.isBlank()) {
-	            user.setStatus(statusVal.trim().charAt(0));
-	        }
-
-	        userList.add(user);
 	    }
 
 	    workbook.close();
-	    userRepository.saveAll(userList);
+
+	    if (!errorMessages.isEmpty()) {
+	        throw new RuntimeException("Validation Errors: " + String.join(" | ", errorMessages));
+	    }
+
+	 // Save all valid users
+	    if (!userList.isEmpty()) {
+	        userRepository.saveAll(userList);
+	    }
 	}
 
-
 }
+

@@ -59,8 +59,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
         return null;
     }
     
-    
-    // Custom query to fetch active users with their nominee details
-//    @Query("SELECT u FROM User u JOIN u.nominees n WHERE u.status = 'Y'")
-//    List<UserDTO> getAllActiveUsersWithNominees();
+
 }

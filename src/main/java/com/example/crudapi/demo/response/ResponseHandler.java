@@ -1,5 +1,7 @@
 package com.example.crudapi.demo.response;
 
+import java.util.List;
+
 /**
  * ResponseHandler class for standardizing the structure of API responses.
  * Used for wrapping data, status, messages, and pagination information 
@@ -16,9 +18,14 @@ public class ResponseHandler {
     // Message containing additional information about the request (e.g., error or success message)
     private String message;
     
-    // Holds the total record count (useful for paginated responses)
+    public void setErrors(List<String> errors) {
+		this.errors = errors;
+	}
+
+	// Holds the total record count (useful for paginated responses)
     private Integer totalRecord;
 
+    private List<String> errors;
     /**
      * Getter for data.
      * 
@@ -90,4 +97,10 @@ public class ResponseHandler {
     public void setTotalRecord(Integer totalRecord) {
         this.totalRecord = totalRecord;
     }
+
+	public List<String> getErrors() {
+		return errors;
+	}
+    
+    
 }
