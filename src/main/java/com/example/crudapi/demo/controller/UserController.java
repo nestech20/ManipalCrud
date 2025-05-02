@@ -4,9 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -209,14 +209,22 @@ public class UserController {
 	public ResponseEntity<ResponseHandler> importUsersFromExcel(@RequestParam("file") MultipartFile file) {
 	    ResponseHandler handler = new ResponseHandler();
 
+	    if (file.isEmpty()) {
+	        handler.setMessage("No file uploaded.");
+	        handler.setStatus(false);
+	        handler.setErrors(List.of("File is required."));
+	        return ResponseEntity.badRequest().body(handler);
+	    }
+
 	    try (InputStream inputStream = file.getInputStream()) {
-	        userService.importExcelToUser(inputStream);
+	        userService.importExcelToUser(inputStream); // This method now handles the business logic
 	        handler.setMessage("Users imported successfully.");
 	        handler.setStatus(true);
-	        handler.setData(null);
+	        handler.setData(null); // If needed, you can pass any result data here
 	        return ResponseEntity.ok(handler);
 
-	    } catch (RuntimeException e) {
+	    } catch (IllegalArgumentException e) {
+	        // Catch validation errors thrown from UserServiceImpl
 	        handler.setMessage("Validation failed");
 	        handler.setStatus(false);
 	        handler.setErrors(List.of(e.getMessage()));
@@ -226,15 +234,14 @@ public class UserController {
 	        handler.setMessage("IO Error while reading file");
 	        handler.setStatus(false);
 	        handler.setErrors(List.of(e.getMessage()));
-	        return ResponseEntity.status(500).body(handler);
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(handler);
 
 	    } catch (Exception e) {
 	        handler.setMessage("Unexpected error occurred");
 	        handler.setStatus(false);
 	        handler.setErrors(List.of(e.getMessage()));
-	        return ResponseEntity.status(500).body(handler);
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(handler);
 	    }
 	}
-
 
 }
