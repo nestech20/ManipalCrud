@@ -59,7 +59,7 @@ public class UserController {
 	}
 
 	// ========================= Add new user =========================
-	@PostMapping
+	@PostMapping("/add")
 	public ResponseHandler addUser(@RequestBody UserDTO userDTO) {
 
 		ResponseHandler handler = new ResponseHandler();
@@ -124,10 +124,10 @@ public class UserController {
 	}
 
 	// ========================= GET user by ID =========================
-	@GetMapping("/{id}")
+	@GetMapping("/list_by_id/{id}")
 	public ResponseHandler getUserById(@PathVariable Long id) {
 
-		ResponseHandler handler3 = new ResponseHandler();
+		ResponseHandler handler3 = new ResponseHandler();   
 
 		try {
 			// Fetch user by ID from the service layer
@@ -147,7 +147,7 @@ public class UserController {
 	}
 
 	// ========================= DELETE user =========================
-	@DeleteMapping("/{id}")
+	@DeleteMapping("/delete/{id}")
 	public String deleteUser(@PathVariable Long id) {
 		// Deletes the user by marking them as inactive (soft delete)
 		userService.delete(id);
@@ -155,7 +155,7 @@ public class UserController {
 	}
 
 	// ========================= UPDATE user =========================
-	@PutMapping("/{id}")
+	@PutMapping("/update/{id}")
 	public ResponseHandler updateUser(@PathVariable Long id, @RequestBody UserDTO userDTO) {
 
 		ResponseHandler handler4 = new ResponseHandler();
@@ -186,30 +186,30 @@ public class UserController {
 //		userService.exportProposersToExcel(response);
 //
 //	}
-	
+
 	@GetMapping("/fileExport")
 	public ResponseHandler exportProposersToExcel() {
-	    ResponseHandler handler = new ResponseHandler();
-	    
-	    try {
-	    	String filepath = userService.exportUsersToExcel();
-	        handler.setMessage("File exported successfully.");
-	        handler.setStatus(true);
-	        handler.setData(filepath);  // No data to return, just the success message
-	    } catch (IOException | ServletException e) {
-	        // In case of failure, return a failure message
-	        handler.setMessage("Failed: " + e.getMessage());
-	        handler.setStatus(false);
-	    }
-	    
-	    return handler;
+		ResponseHandler handler = new ResponseHandler();
+
+		try {
+			String filepath = userService.exportUsersToExcel();
+			handler.setMessage("File exported successfully.");
+			handler.setStatus(true);
+			handler.setData(filepath); // No data to return, just the success message
+		} catch (IOException | ServletException e) {
+			// In case of failure, return a failure message
+			handler.setMessage("Failed: " + e.getMessage());
+			handler.setStatus(false);
+		}
+
+		return handler;
 	}
-	
+
 	@PostMapping(value = "/fileImport", consumes = "multipart/form-data")
 	public ResponseEntity<ResponseHandler> importUsersFromExcel(@RequestParam("file") MultipartFile file) {
 	    ResponseHandler handler = new ResponseHandler();
 
-	    if (file.isEmpty()) {
+	    if (file == null || file.isEmpty()) {
 	        handler.setMessage("No file uploaded.");
 	        handler.setStatus(false);
 	        handler.setErrors(List.of("File is required."));
@@ -217,29 +217,30 @@ public class UserController {
 	    }
 
 	    try (InputStream inputStream = file.getInputStream()) {
-	        userService.importExcelToUser(inputStream); // This method now handles the business logic
+	        // Delegate parsing/validation logic to service layer
+	        userService.importExcelToUser(inputStream);
+
 	        handler.setMessage("Users imported successfully.");
 	        handler.setStatus(true);
-	        handler.setData(null); // If needed, you can pass any result data here
+	        handler.setData(null); // Optionally return a summary
 	        return ResponseEntity.ok(handler);
 
-	    } catch (IllegalArgumentException e) {
-	        // Catch validation errors thrown from UserServiceImpl
-	        handler.setMessage("Validation failed");
+	    } catch (IllegalArgumentException ex) {
+	        handler.setMessage("Validation failed.");
 	        handler.setStatus(false);
-	        handler.setErrors(List.of(e.getMessage()));
+	        handler.setErrors(List.of(ex.getMessage()));
 	        return ResponseEntity.badRequest().body(handler);
 
-	    } catch (IOException e) {
-	        handler.setMessage("IO Error while reading file");
+	    } catch (IOException ioEx) {
+	        handler.setMessage("IO error while reading file.");
 	        handler.setStatus(false);
-	        handler.setErrors(List.of(e.getMessage()));
+	        handler.setErrors(List.of("Failed to read uploaded file. " + ioEx.getMessage()));
 	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(handler);
 
-	    } catch (Exception e) {
-	        handler.setMessage("Unexpected error occurred");
+	    } catch (Exception ex) {
+	        handler.setMessage("Validation failed: ");
 	        handler.setStatus(false);
-	        handler.setErrors(List.of(e.getMessage()));
+	        handler.setErrors(List.of(ex.getMessage()));
 	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(handler);
 	    }
 	}
