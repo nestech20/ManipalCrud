@@ -9,80 +9,78 @@ import com.example.crudapi.demo.enums.Gender;
 import com.example.crudapi.demo.enums.Title;
 
 /**
- * Data Transfer Object for User entity.
- * Used for transferring user-related data between layers (controller, service).
+ * Data Transfer Object for User entity. Used for transferring user-related data
+ * between layers (controller, service).
  */
 public class UserDTO {
 
-    // --- User Details ---
-	
-	 private long userId;
+	// --- User Details ---
 
-    /** Full name of the user */
-    private String fullName;
+	private long userId;
 
-    /** Date of birth */
-    private LocalDate dob;
+	/** Full name of the user */
+	private String fullName;
 
-    /** Gender of the user */
-    private Gender gender;
+	/** Date of birth */
+	private LocalDate dob;
 
-    /** Title (e.g., Mr, Ms, Dr) */
-    private Title title;
+	/** Gender of the user */
+	private Gender gender;
 
-    /** PAN number (Permanent Account Number) */
-    private String panNo;
+	/** Title (e.g., Mr, Ms, Dr) */
+	private Title title;
 
-    /** Annual income */
-    private Long annualIncome;
+	/** PAN number (Permanent Account Number) */
+	private String panNo;
 
-    // --- Contact Information ---
+	/** Annual income */
+	private Long annualIncome;
 
-    /** Mobile number */
-    private String mobileNo;
+	// --- Contact Information ---
 
-    /** Email address */
-    private String email;
+	/** Mobile number */
+	private String mobileNo;
 
-    /** Alternate contact number */
-    private String alternateNo;
+	/** Email address */
+	private String email;
 
-    // --- Address Details ---
+	/** Alternate contact number */
+	private String alternateNo;
 
-    /** Residential address */
-    private String address;
+	// --- Address Details ---
 
-    /** Postal code */
-    private Long pincode;
+	/** Residential address */
+	private String address;
 
-    /** City name */
-    private String city;
+	/** Postal code */
+	private Long pincode;
 
-    /** State name */
-    private String state;
+	/** City name */
+	private String city;
 
-    // --- Status and Audit ---
+	/** State name */
+	private String state;
 
-    /** Active/inactive status of the user */
-    private Character status;
+	// --- Status and Audit ---
 
-    /** Record creation timestamp */
-    private LocalDateTime createdDate;
+	/** Active/inactive status of the user */
+	private Character status;
 
-    /** Last update timestamp */
-    private LocalDateTime updatedDate;
+	/** Record creation timestamp */
+	private LocalDateTime createdDate;
 
-    // --- Associated Nominees ---
+	/** Last update timestamp */
+	private LocalDateTime updatedDate;
 
-    /** List of nominee DTOs linked to this user */
-    private List<NomineeDTO> nominees;
+	// --- Associated Nominees ---
 
-    /** Flag indicating if nominee is being updated (Y/N) */
-    private Character isUpdatingNominee;
-    
-    
-    
- public long getUserId() {
+	/** List of nominee DTOs linked to this user */
+	private List<NomineeDTO> nominees;
+
+	/** Flag indicating if nominee is being updated (Y/N) */
+	private Character isUpdatingNominee;
+
+	public long getUserId() {
 		return userId;
 	}
 
@@ -91,17 +89,16 @@ public class UserDTO {
 	}
 
 	// --- Constructor mapping the result ---
-    public UserDTO() {
-        // Initialize the nominees list if needed
-        this.nominees = new ArrayList<>();
-    }
+	public UserDTO() {
+		// Initialize the nominees list if needed
+		this.nominees = new ArrayList<>();
+	}
 
-    // --- Getters and Setters ---
+	// --- Getters and Setters ---
 
 	public String getFullName() {
 		return fullName;
 	}
-
 
 	public void setFullName(String fullName) {
 		this.fullName = fullName;

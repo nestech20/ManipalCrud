@@ -1,6 +1,7 @@
 package com.example.crudapi.demo.serviceimp;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,14 +9,13 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
-import javax.management.RuntimeErrorException;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
@@ -28,12 +28,14 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import com.example.crudapi.demo.dto.NomineeDTO;
 import com.example.crudapi.demo.dto.UserDTO;
+import com.example.crudapi.demo.entity.FileQueue;
 import com.example.crudapi.demo.entity.Nominee;
 import com.example.crudapi.demo.entity.User;
 import com.example.crudapi.demo.entity.UserFilter;
@@ -41,12 +43,12 @@ import com.example.crudapi.demo.entity.UserImportLog;
 import com.example.crudapi.demo.entity.UserListing;
 import com.example.crudapi.demo.enums.Gender;
 import com.example.crudapi.demo.enums.Title;
+import com.example.crudapi.demo.repository.FileQueueRepository;
 import com.example.crudapi.demo.repository.NomineeRepository;
 import com.example.crudapi.demo.repository.UserImportLogRepository;
 import com.example.crudapi.demo.repository.UserRepository;
 import com.example.crudapi.demo.service.UserService;
 
-import ch.qos.logback.core.joran.conditional.IfAction;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.servlet.ServletException;
@@ -65,6 +67,9 @@ public class UserServiceImpl implements UserService {
 
 	@Autowired
 	private UserImportLogRepository userImportLogRepository;
+	
+	@Autowired
+	private FileQueueRepository queueRepository;
 
 	// ========== Fetch Proposers by Filters and Sorting =============
 	@Override
@@ -580,7 +585,7 @@ public class UserServiceImpl implements UserService {
 	// ================= Import USER Table in Excel =======
 
 	@Override
-	public void importExcelToUser(InputStream file) throws IOException {
+	public String importExcelToUser(InputStream file) throws IOException {
 		// List to collect all error messages during validation
 		List<String> errorMessages = new ArrayList<>();
 		List<UserImportLog> errorTab = new ArrayList<>();
@@ -589,10 +594,35 @@ public class UserServiceImpl implements UserService {
 		Workbook workbook = WorkbookFactory.create(file);
 		Sheet sheet = workbook.getSheetAt(0); // Get first sheet from the file
 
+		int totalRecords = sheet.getLastRowNum();
+		Integer batchSize = 3;
+		if (totalRecords > 5) {
+			
+			String filePath = "C:/batchuploads/";
+			new File(filePath).mkdir();
+			
+			String fileName = "QueueFile_" + UUID.randomUUID().toString().substring(0, 4) + ".xlsx";
+			String fullFilePath=filePath+fileName;
+		
+		   try(FileOutputStream out = new FileOutputStream(fullFilePath)){
+			  workbook.write(out); 
+		   }
+		   FileQueue queue = new FileQueue();  
+		   queue.setFilePath(fullFilePath);
+		   queue.setIsProcessed("N");
+		   queue.setRowCount(totalRecords);
+		   queue.setRowRead(0);
+		   queue.setStatus("N");
+		   queue.setLastProcess(batchSize); // usually 0 if nothing has been processed yet
+
+	        queueRepository.save(queue); // ✅ correct usage
+
+	        workbook.close();
+	        return "File queued for batch processing.";
+	    }
+
 		Row newRow = sheet.getRow(0);
-
 		int lastColunm = newRow.getLastCellNum();
-
 		newRow.createCell(lastColunm).setCellValue("Status");
 		newRow.createCell(lastColunm + 1).setCellValue("ErrorMessage");
 
@@ -853,7 +883,7 @@ public class UserServiceImpl implements UserService {
 				}
 
 				Cell status = row.createCell(lastColunm);
-				Cell errorMessage = row.createCell(lastColunm+1);
+				Cell errorMessage = row.createCell(lastColunm + 1);
 
 				// ----------- Logging Result -----------
 				UserImportLog log = new UserImportLog();
@@ -872,7 +902,7 @@ public class UserServiceImpl implements UserService {
 					status.setCellValue("Sucess");
 					errorMessage.setCellValue("Saved SucessFull");
 				} else {
-					// Filter only matching row errors (starts with expected prefix)
+					// Filter only matching row errors (starts with expected prefix)          
 					List<String> rowErrors = errorMessages.stream().filter(msg -> msg.startsWith("row:" + rowNum))
 							.collect(Collectors.toList());
 
@@ -919,7 +949,7 @@ public class UserServiceImpl implements UserService {
 		String filePath = outputDir + fileName;
 
 		try (FileOutputStream uploadFile = new FileOutputStream(filePath)) {
-			workbook.write(uploadFile); // ✅ Write BEFORE closing
+			workbook.write(uploadFile); // Write BEFORE closing
 		}
 
 		workbook.close(); // Cleanup resource
@@ -956,8 +986,330 @@ public class UserServiceImpl implements UserService {
 				}
 			}
 		}
+		
+		return "All proposers saved successfully";
 
 	}
+	
+	@Override
+	@Scheduled(fixedRate = 3000)
+	public void processExcelBatch() throws IOException {
+	    List<FileQueue> data = queueRepository.findByIsProcessed("N");
+
+	    for (FileQueue queueData : data) {
+	        try (FileInputStream fis = new FileInputStream(queueData.getFilePath());
+	             Workbook workbook = new XSSFWorkbook(fis)) {
+
+	            Sheet sheet = workbook.getSheetAt(0);
+	            int rowStart = queueData.getRowRead() + 1;
+	            int totalRows = queueData.getRowCount();
+	            int batchSize = 3;
+
+	            for (int i = rowStart; i <= totalRows && i < rowStart + batchSize; i++) {
+	                Row row = sheet.getRow(i);
+	                if (row == null || isRowBlank(row)) continue;
+
+	                List<String> errorMessages = new ArrayList<>();
+	                List<UserImportLog> errorTab = new ArrayList<>();
+	                User user = new User();
+	                boolean hasError = false;
+
+	                int rowNum = row.getRowNum();
+
+	                try {
+	                	// ----------- 1. Title -----------
+	    				Cell cell = row.getCell(1);
+
+	    				if (cell == null || cell.getCellType() != CellType.STRING) {
+	    					errorMessages.add("row:" + rowNum + "|field:Title|msg:Missing or invalid title");
+	    					hasError = true;
+	    				} else {
+	    					String val = cell.getStringCellValue().trim();
+	    					if (val.isEmpty()) {
+	    						errorMessages.add("row:" + rowNum + "|field:Title|msg:Empty title");
+	    						hasError = true;
+	    					} else {
+	    						boolean matched = false;
+	    						for (Title title : Title.values()) {
+	    							if (title.name().equalsIgnoreCase(val)) {
+	    								user.setTitle(title);
+	    								matched = true;
+	    								break;
+	    							}
+	    						}
+	    						if (!matched) {
+	    							errorMessages.add("row:" + rowNum + "|field:Title|msg:Invalid title value");
+	    							hasError = true;
+	    						}
+	    					}
+	    				}
+
+	    				// ----------- 2. Full Name -----------
+	    				Cell cell2 = row.getCell(2);
+	    				if (cell2 == null || cell2.getCellType() != CellType.STRING) {
+	    					errorMessages.add("row:" + rowNum + "|field:FullNAME|msg:Missing or invalid full name");
+	    					hasError = true;
+	    				} else {
+	    					String val = cell2.getStringCellValue().trim();
+	    					if (val.isEmpty() || !val.matches("^[A-Za-z ]+$")) {
+	    						errorMessages.add("row:" + rowNum + "|field:FullNAME|msg:Invalid full name");
+	    						hasError = true;
+	    					} else {
+	    						user.setFullName(val);
+	    					}
+	    				}
+
+	    				// ----------- 3. Gender -----------
+	    				Cell cell3 = row.getCell(3);
+	    				if (cell3 == null || cell3.getCellType() != CellType.STRING) {
+	    					errorMessages.add("row:" + rowNum + "|field:Gender|msg:Missing or invalid gender");
+	    					hasError = true;
+	    				} else {
+	    					String val = cell3.getStringCellValue().trim();
+	    					if (val.isEmpty()) {
+	    						errorMessages.add("row:" + rowNum + "|field:Gender|msg:Empty gender");
+	    						hasError = true;
+	    					} else {
+	    						boolean matched = false;
+	    						for (Gender g : Gender.values()) {
+	    							if (g.name().equalsIgnoreCase(val)) {
+	    								user.setGender(g);
+	    								matched = true;
+	    								break;
+	    							}
+	    						}
+	    						if (!matched) {
+	    							errorMessages.add("row:" + rowNum + "|field:Gender|msg:Invalid gender value");
+	    							hasError = true;
+	    						}
+	    					}
+	    				}
+
+	    				// ----------- 4. DOB -----------
+	    				Cell dobCell = row.getCell(4);
+	    				if (dobCell == null) {
+	    					errorMessages.add("row:" + rowNum + "|field:DateOfBirth|msg:DOB is required");
+	    					hasError = true;
+	    				} else if (dobCell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(dobCell)) {
+	    					user.setDob(dobCell.getLocalDateTimeCellValue().toLocalDate());
+	    				} else {
+	    					errorMessages.add("row:" + rowNum + "|field:DateOfBirth|msg:DOB must be a date-formatted cell");
+	    					hasError = true;
+	    				}
+
+	    				// ----------- 5. PAN No -----------
+	    				Cell cell5 = row.getCell(5);
+	    				if (cell5 == null || cell5.getCellType() != CellType.STRING) {
+	    					errorMessages.add("row:" + rowNum + "|field:PanNO|msg:Missing or invalid PAN");
+	    					hasError = true;
+	    				} else {
+	    					String val = cell5.getStringCellValue().trim();
+	    					if (!val.matches("^[A-Z]{5}[0-9]{4}[A-Z]$")) {
+	    						errorMessages.add("row:" + rowNum + "|field:PanNO|msg:Invalid PAN format");
+	    						hasError = true;
+	    					} else if (userRepository.existsByPanNo(val)) {
+	    						errorMessages.add("row:" + rowNum + "|field:PanNO|msg:Duplicate PAN number");
+	    						hasError = true;
+	    					} else {
+	    						user.setPanNo(val);
+	    					}
+	    				}
+
+	    				// ----------- 6. Annual Income -----------
+	    				Cell cell6 = row.getCell(6);
+	    				if (cell6 == null || cell6.getCellType() != CellType.NUMERIC) {
+	    					errorMessages.add("row:" + rowNum + "|field:AnnualIncome|msg:Missing or invalid income");
+	    					hasError = true;
+	    				} else {
+	    					double val = cell6.getNumericCellValue();
+	    					if (val < 0) {
+	    						errorMessages.add("row:" + rowNum + "|field:AnnualIncome|msg:Negative income not allowed");
+	    						hasError = true;
+	    					} else {
+	    						user.setAnnualIncome((long) val);
+	    					}
+	    				}
+
+	    				// ----------- 7. Email -----------
+	    				Cell cell7 = row.getCell(7);
+	    				if (cell7 == null || cell7.getCellType() != CellType.STRING) {
+	    					errorMessages.add("row:" + rowNum + "|field:Email|msg:Missing or invalid email");
+	    					hasError = true;
+	    				} else {
+	    					String val = cell7.getStringCellValue().trim();
+	    					if (!val.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+	    						errorMessages.add("row:" + rowNum + "|field:Email|msg:Invalid email format");
+	    						hasError = true;
+	    					} else if (userRepository.existsByEmail(val)) {
+	    						errorMessages.add("row:" + rowNum + "|field:Email|msg:Duplicate email");
+	    						hasError = true;
+	    					} else {
+	    						user.setEmail(val);
+	    					}
+	    				}
+
+	    				// ----------- 8. Mobile No -----------
+	    				Cell cell8 = row.getCell(8);
+	    				String val8 = null;
+	    				if (cell8 == null) {
+	    					errorMessages.add("row:" + rowNum + "|field:MobileNo|msg:Missing mobile number");
+	    					hasError = true;
+	    				} else if (cell8.getCellType() == CellType.STRING) {
+	    					val8 = cell8.getStringCellValue().trim();
+	    				} else if (cell8.getCellType() == CellType.NUMERIC) {
+	    					val8 = BigDecimal.valueOf(cell8.getNumericCellValue()).toPlainString();
+	    				} else {
+	    					errorMessages.add("row:" + rowNum + "|field:MobileNo|msg:Invalid mobile cell type");
+	    					hasError = true;
+	    				}
+	    				if (val8 != null && !val8.matches("^\\d{10}$")) {
+	    					errorMessages.add("row:" + rowNum + "|field:MobileNo|msg:Invalid mobile format");
+	    					hasError = true;
+	    				} else if (userRepository.existsByMobileNo(val8)) {
+	    					errorMessages.add("row:" + rowNum + "|field:MobileNo|msg:Duplicate mobile number");
+	    					hasError = true;
+	    				} else {
+	    					user.setMobileNo(val8);
+	    				}
+
+	    				// ----------- 9. Alternate No (optional) -----------
+	    				Cell cell9 = row.getCell(9);
+	    				String val9 = null;
+	    				if (cell9 != null) {
+	    					if (cell9.getCellType() == CellType.STRING) {
+	    						val9 = cell9.getStringCellValue().trim();
+	    					} else if (cell9.getCellType() == CellType.NUMERIC) {
+	    						val9 = BigDecimal.valueOf(cell9.getNumericCellValue()).toPlainString();
+	    					} else {
+	    						errorMessages
+	    								.add("row:" + rowNum + "|field:AlternateNo|msg:Invalid alternate number cell type");
+	    						hasError = true;
+	    					}
+	    					if (val9 != null && !val9.isEmpty() && !val9.matches("^\\d{10}$")) {
+	    						errorMessages
+	    								.add("row:" + rowNum + "|field:Al     ternateNo|msg:Invalid alternate number format");
+	    						hasError = true;
+	    					}
+	    				}
+	    				user.setAlternateNo(val9);
+
+	    				// ----------- 10. Address -----------
+	    				Cell cell10 = row.getCell(10);
+	    				if (cell10 == null || cell10.getCellType() != CellType.STRING) {
+	    					errorMessages.add("row:" + rowNum + "|field:Address|msg:Missing or invalid address");
+	    					hasError = true;
+	    				} else {
+	    					String val = cell10.getStringCellValue().trim();
+	    					if (val.isEmpty()) {
+	    						errorMessages.add("row:" + rowNum + "|field:Address|msg:Empty address");
+	    						hasError = true;
+	    					} else {
+	    						user.setAddress(val);
+	    					}
+	    				}
+
+	    				// ----------- 11. Pincode -----------
+	    				Cell cell11 = row.getCell(11);
+	    				if (cell11 == null || cell11.getCellType() != CellType.NUMERIC) {
+	    					errorMessages.add("row:" + rowNum + "|field:Pincode|msg:Missing or invalid pincode");
+	    					hasError = true;
+	    				} else {
+	    					user.setPincode((long) cell11.getNumericCellValue());
+	    				}
+
+	    				// ----------- 12. City -----------
+	    				Cell cell12 = row.getCell(12);
+	    				if (cell12 == null || cell12.getCellType() != CellType.STRING) {
+	    					errorMessages.add("row:" + rowNum + "|field:City|msg:Missing or invalid city");
+	    					hasError = true;
+	    				} else {
+	    					String val = cell12.getStringCellValue().trim();
+	    					if (val.isEmpty()) {
+	    						errorMessages.add("row:" + rowNum + "|field:City|msg:Empty city");
+	    						hasError = true;
+	    					} else {
+	    						user.setCity(val);
+	    					}
+	    				}
+
+	    				// ----------- 13. State -----------
+	    				Cell cell13 = row.getCell(13);
+	    				if (cell13 == null || cell13.getCellType() != CellType.STRING) {
+	    					errorMessages.add("row:" + rowNum + "|field:State|msg:Missing or invalid state");
+	    					hasError = true;
+	    				} else {
+	    					String val = cell13.getStringCellValue().trim();
+	    					if (val.isEmpty()) {
+	    						errorMessages.add("row:" + rowNum + "|field:State|msg:Empty state");
+	    						hasError = true;
+	    					} else {
+	    						user.setState(val);
+	    					}
+	    				}
+
+	    				// ----------- 14. Status -----------
+	    				Cell cell14 = row.getCell(14);
+	    				if (cell14 == null || cell14.getCellType() != CellType.STRING) {
+	    					errorMessages.add("row:" + rowNum + "|field:Status|msg:Missing or invalid status");
+	    					hasError = true;
+	    				} else {
+	    					String val = cell14.getStringCellValue().trim();
+	    					if (val.isEmpty()) {
+	    						errorMessages.add("row:" + rowNum + "|field:Status|msg:Empty status");
+	    						hasError = true;
+	    					} else {
+	    						user.setStatus(val.charAt(0));
+	    					}
+	    				}
+
+
+	                    // ---- Finalizing per-row result ----
+	                    UserImportLog log = new UserImportLog();
+	                    log.setTimestamp(LocalDateTime.now());
+	                    log.setRowNumber(rowNum);
+
+	                    if (!hasError) {
+	                        userRepository.save(user);
+	                        log.setErrorMessage("User added!");
+	                        log.setErrorField("N/A");
+	                        log.setStatus("SUCCESS");
+	                    } else {
+	                        List<String> rowErrors = errorMessages.stream()
+	                                .filter(msg -> msg.startsWith("row:" + rowNum))
+	                                .collect(Collectors.toList());
+
+	                        for (String error : rowErrors) {
+	                            String[] parts = error.split("\\|");
+	                            if (parts.length >= 3) {
+	                                UserImportLog errLog = new UserImportLog();
+	                                errLog.setTimestamp(LocalDateTime.now());
+	                                errLog.setRowNumber(rowNum);
+	                                errLog.setErrorField(parts[1].replace("field:", "").trim());
+	                                errLog.setErrorMessage(parts[2].replace("msg:", "").trim());
+	                                errLog.setStatus("FAILED");
+	                                userImportLogRepository.save(errLog);
+	                            }
+	                        }
+	                    }
+	                } catch (Exception e) {
+	                    errorMessages.add("Unexpected error at row " + rowNum + ": " + e.getMessage());
+	                }
+
+	                queueData.setRowRead(i);
+	            }
+
+	            if (queueData.getRowRead() >= totalRows) {
+	                queueData.setIsProcessed("Y");
+	                queueData.setStatus("Y");
+	            }
+
+	            queueRepository.save(queueData);
+	        } catch (Exception e) {
+	            e.printStackTrace();
+	        }
+	    }
+	}
+
 
 	// check if a row is completely empty (used to stop processing trailing empty
 	// rows)

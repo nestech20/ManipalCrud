@@ -1,6 +1,4 @@
-	
-	// import with export error log
-	@Override
+@Override
 	public void importExcelToUser(InputStream file) throws IOException {
 		// List to collect all error messages during validation
 		List<String> errorMessages = new ArrayList<>();
@@ -9,6 +7,13 @@
 		// Create workbook from the uploaded Excel file (XLSX/XLS supported)
 		Workbook workbook = WorkbookFactory.create(file);
 		Sheet sheet = workbook.getSheetAt(0); // Get first sheet from the file
+
+		Row newRow = sheet.getRow(0);
+
+		int lastColunm = newRow.getLastCellNum();
+
+		newRow.createCell(lastColunm).setCellValue("Status");
+		newRow.createCell(lastColunm + 1).setCellValue("ErrorMessage");
 
 		// Loop over each row in the sheet
 		for (Row row : sheet) {
@@ -266,104 +271,110 @@
 					}
 				}
 
+				Cell status = row.createCell(lastColunm);
+				Cell errorMessage = row.createCell(lastColunm + 1);
+
 				// ----------- Logging Result -----------
 				UserImportLog log = new UserImportLog();
 				log.setTimestamp(LocalDateTime.now());
 
 				if (!hasError) {
-				    userRepository.save(user); // Save valid user
+					userRepository.save(user); // Save valid user
 
-				    log.setErrorMessage("User added!");
-				    log.setErrorField("N/A");
-				    log.setRowNumber(rowNum);
-				    log.setStatus("SUCCESS");
+					log.setErrorMessage("User added!");
+					log.setErrorField("N/A");
+					log.setRowNumber(rowNum);
+					log.setStatus("SUCCESS");
 
-				    userImportLogRepository.save(log);
+					userImportLogRepository.save(log);
+
+					status.setCellValue("Sucess");
+					errorMessage.setCellValue("Saved SucessFull");
 				} else {
-				    // Filter only matching row errors (starts with expected prefix)
-				    List<String> rowErrors = errorMessages.stream()
-				        .filter(msg -> msg.startsWith("row:" + rowNum))
-				        .collect(Collectors.toList());
+					// Filter only matching row errors (starts with expected prefix)
+					List<String> rowErrors = errorMessages.stream().filter(msg -> msg.startsWith("row:" + rowNum))
+							.collect(Collectors.toList());
 
-				    for (String error : rowErrors) {
-				        String[] parts = error.split("\\|");
+					List<String> errorMessage1 = new ArrayList<>();
 
-				        if (parts.length < 3) continue; // Defensive check
+					for (String error : rowErrors) {
+						String[] parts = error.split("\\|");
 
-				        String field = parts[1].replace("field:", "").trim();
-				        String message = parts[2].replace("msg:", "").trim();
+						if (parts.length < 3)
+							continue; // Defensive check
 
-				        UserImportLog errorLog = new UserImportLog();
-				        errorLog.setTimestamp(LocalDateTime.now());
-				        errorLog.setErrorField(field);
-				        errorLog.setErrorMessage(message);
-				        errorLog.setRowNumber(rowNum);
-				        errorLog.setStatus("FAILED");
+						String field = parts[1].replace("field:", "").trim();
+						String message = parts[2].replace("msg:", "").trim();
 
-				        errorTab.add(errorLog);
-				        userImportLogRepository.save(errorLog);
-				    }
+						errorMessage1.add(message);
+
+						UserImportLog errorLog = new UserImportLog();
+						errorLog.setTimestamp(LocalDateTime.now());
+						errorLog.setErrorField(field);
+						errorLog.setErrorMessage(message);
+						errorLog.setRowNumber(rowNum);
+						errorLog.setStatus("FAILED");
+
+						errorTab.add(errorLog);
+						userImportLogRepository.save(errorLog);
+
+					}
+
+					status.setCellValue("Failed");
+					errorMessage.setCellValue(String.join(", ", errorMessage1));
 				}
-
 
 			} catch (Exception e) {
 				// Catching any unexpected error
 				errorMessages.add("Unexpected error at row " + rowNum + ": " + e.getMessage());
 			}
 		}
+		// Ensure directory exists
+		String outputDir = "C:\\ErrorFile\\";
+		new File(outputDir).mkdirs();
+
+		// Unique file name
+		String fileName = "errorLog_" + UUID.randomUUID().toString().substring(0, 6) + ".xlsx";
+		String filePath = outputDir + fileName;
+
+		try (FileOutputStream uploadFile = new FileOutputStream(filePath)) {
+			workbook.write(uploadFile); // ✅ Write BEFORE closing
+		}
 
 		workbook.close(); // Cleanup resource
 
-		// If any row had errors, throw combined exception at the end
-//		if (!errorMessages.isEmpty()) {
-//			String combinedErrors = String.join(" ", errorMessages);
-//			throw new IllegalArgumentException("Errors found during import: " + combinedErrors);
-//		}
-
 		if (!errorTab.isEmpty()) {
-		    XSSFWorkbook workbookk = new XSSFWorkbook();
-		    try {
-		        XSSFSheet sheet1 = workbookk.createSheet("Error_Data");
+			XSSFWorkbook workbookk = new XSSFWorkbook();
+			try {
+				XSSFSheet sheet1 = workbookk.createSheet("Error_Data");
 
-		        // Header row
-		        String[] headers = {"Row Number", "Field", "Error Message", "Timestamp"};
-		        XSSFRow headerRow = sheet1.createRow(0);
-		        for (int i = 0; i < headers.length; i++) {
-		            headerRow.createCell(i).setCellValue(headers[i]);
-		        }
+				// Header row
+				String[] headers = { "Row Number", "Field", "Error Message", "Timestamp" };
+				XSSFRow headerRow = sheet1.createRow(0);
+				for (int i = 0; i < headers.length; i++) {
+					headerRow.createCell(i).setCellValue(headers[i]);
+				}
 
-		        // Data rows
-		        int rowIndex = 1;
-		        for (UserImportLog errorLog : errorTab) {
-		            XSSFRow row = sheet1.createRow(rowIndex++);
-		            row.createCell(0).setCellValue(errorLog.getRowNumber());
-		            row.createCell(1).setCellValue(errorLog.getErrorField());
-		            row.createCell(2).setCellValue(errorLog.getErrorMessage());
-		            row.createCell(3).setCellValue(errorLog.getTimestamp().toString());
-		        }
+				// Data rows
+				int rowIndex = 1;
+				for (UserImportLog errorLog : errorTab) {
+					XSSFRow row = sheet1.createRow(rowIndex++);
+					row.createCell(0).setCellValue(errorLog.getRowNumber());
+					row.createCell(1).setCellValue(errorLog.getErrorField());
+					row.createCell(2).setCellValue(errorLog.getErrorMessage());
+					row.createCell(3).setCellValue(errorLog.getTimestamp().toString());
+				}
 
-		        // Ensure directory exists
-		        String outputDir = "C:\\ErrorFile\\";
-		        new File(outputDir).mkdirs();
+				throw new RuntimeException("Check error on this : " + filePath + fileName);
 
-		        // Unique file name
-		        String fileName = "errorLog_" + UUID.randomUUID().toString().substring(0, 6) + ".xlsx";
-		        String filePath = outputDir + fileName;
-
-		        try (FileOutputStream uploadFile = new FileOutputStream(filePath)) {
-		            workbookk.write(uploadFile); // ✅ Write BEFORE closing
-		        }
-		        
-		        throw new RuntimeException("Check error on this : "+ filePath+fileName);
-
-		    } catch (IOException e) {
-		        System.err.println("Error writing Excel error log: " + e.getMessage());
-		    } finally {
-		        try {
-		            workbookk.close(); // ✅ Close only once, and only if not already closed
-		        } catch (IOException e) {
-		            System.err.println("Error closing workbook: " + e.getMessage());
-		        }}}
+			} finally {
+				try {
+					workbookk.close(); // ✅ Close only once, and only if not already closed
+				} catch (IOException e) {
+					System.err.println("Error closing workbook: " + e.getMessage());
+				}
+			}
+		}
 
 	}
 
@@ -382,3 +393,4 @@
 		}
 		return true;
 	}
+}

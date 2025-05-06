@@ -71,6 +71,9 @@ public interface UserService {
      */
     String exportUsersToExcel() throws ServletException, IOException;
    
-    void importExcelToUser(InputStream file) throws IOException;
+    String importExcelToUser(InputStream file) throws IOException;
+    
+    
+	void processExcelBatch() throws IOException;
 }
   
