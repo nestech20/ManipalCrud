@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.springframework.web.multipart.MultipartFile;
 
-import com.example.crudapi.demo.dto.UserDTO;
+import com.example.crudapi.demo.dto.UserDto;
 import com.example.crudapi.demo.entity.User;
 import com.example.crudapi.demo.entity.UserListing;
 
@@ -20,14 +20,14 @@ public interface UserService {
      * @param userDTO the data transfer object containing user information
      * @return a success message or relevant error description
      */
-    String addUser(UserDTO userDTO);
+    String addUser(UserDto userDTO);
 
     /**
      * Retrieves all users (typically active ones).
      *
      * @return a list of UserDTOs representing all users
      */
-    List<UserDTO> getAllUser();
+    List<UserDto> getAllUser();
 
     /**
      * Retrieves a specific user by their unique ID.
@@ -35,7 +35,7 @@ public interface UserService {
      * @param id the unique identifier of the user
      * @return a UserDTO containing user information
      */
-    UserDTO getUserById(Long id);
+    UserDto getUserById(Long id);
 
     /**
      * Updates an existing user's information.
@@ -44,7 +44,7 @@ public interface UserService {
      * @param userDTO the data transfer object containing updated user details
      * @return a success message or relevant error description
      */
-    String updateUser(Long id, UserDTO userDTO);
+    String updateUser(Long id, UserDto userDTO);
 
     /**
      * Performs a soft delete (or actual delete, depending on implementation) of a user by ID.
@@ -71,9 +71,11 @@ public interface UserService {
      */
     String exportUsersToExcel() throws ServletException, IOException;
    
-    String importExcelToUser(InputStream file) throws IOException;
+  void importExcelToUser(InputStream file) throws IOException;
     
     
-	void processExcelBatch() throws IOException;
+  String batchProcessing(MultipartFile file) throws IOException;
+  
+   
 }
   

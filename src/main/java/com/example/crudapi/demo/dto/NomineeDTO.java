@@ -6,7 +6,7 @@ import java.time.LocalDate;
  * Data Transfer Object for Nominee entity. Used for transferring nominee data
  * between layers.
  */
-public class NomineeDTO {
+public class NomineeDto {
 
 	/** Unique identifier for the nominee (used for update operations) */
 	private Long id;

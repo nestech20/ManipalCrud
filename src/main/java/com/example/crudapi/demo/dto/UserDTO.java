@@ -1,8 +1,8 @@
 package com.example.crudapi.demo.dto;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import com.example.crudapi.demo.enums.Gender;
@@ -12,7 +12,7 @@ import com.example.crudapi.demo.enums.Title;
  * Data Transfer Object for User entity. Used for transferring user-related data
  * between layers (controller, service).
  */
-public class UserDTO {
+public class UserDto {
 
 	// --- User Details ---
 
@@ -22,7 +22,7 @@ public class UserDTO {
 	private String fullName;
 
 	/** Date of birth */
-	private LocalDate dob;
+	private Date dob;
 
 	/** Gender of the user */
 	private Gender gender;
@@ -75,7 +75,7 @@ public class UserDTO {
 	// --- Associated Nominees ---
 
 	/** List of nominee DTOs linked to this user */
-	private List<NomineeDTO> nominees;
+	private List<NomineeDto> nominees;
 
 	/** Flag indicating if nominee is being updated (Y/N) */
 	private Character isUpdatingNominee;
@@ -89,7 +89,7 @@ public class UserDTO {
 	}
 
 	// --- Constructor mapping the result ---
-	public UserDTO() {
+	public UserDto() {
 		// Initialize the nominees list if needed
 		this.nominees = new ArrayList<>();
 	}
@@ -104,11 +104,13 @@ public class UserDTO {
 		this.fullName = fullName;
 	}
 
-	public LocalDate getDob() {
+	
+
+	public Date getDob() {
 		return dob;
 	}
 
-	public void setDob(LocalDate dob) {
+	public void setDob(Date dob) {
 		this.dob = dob;
 	}
 
@@ -224,11 +226,11 @@ public class UserDTO {
 		this.updatedDate = updatedDate;
 	}
 
-	public List<NomineeDTO> getNominees() {
+	public List<NomineeDto> getNominees() {
 		return nominees;
 	}
 
-	public void setNominees(List<NomineeDTO> nominees) {
+	public void setNominees(List<NomineeDto> nominees) {
 		this.nominees = nominees;
 	}
 

@@ -4,8 +4,10 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
+@Table(name = "queue_table")
 public class FileQueue {
     
     @Id
@@ -16,7 +18,7 @@ public class FileQueue {
     private int rowCount;
     private int rowRead;
     private String status;
-    private int lastProcess;
+   
 
     // Getters and setters
     public Long getQueueId() {
@@ -67,11 +69,4 @@ public class FileQueue {
         this.status = status;
     }
 
-    public int getLastProcess() {
-        return lastProcess;
-    }
-
-    public void setLastProcess(int lastProcess) {
-        this.lastProcess = lastProcess;
-    }
 }

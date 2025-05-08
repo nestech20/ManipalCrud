@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 // Importing DTO, entity, response handler, and service classes
-import com.example.crudapi.demo.dto.UserDTO;
+import com.example.crudapi.demo.dto.UserDto;
 import com.example.crudapi.demo.entity.User;
 import com.example.crudapi.demo.entity.UserListing;
 import com.example.crudapi.demo.response.ResponseHandler;
@@ -42,7 +42,7 @@ public class UserController {
 		ResponseHandler handler2 = new ResponseHandler();
 		try {
 			// Fetches all active users from the service layer
-			List<UserDTO> data = userService.getAllUser();
+			List<UserDto> data = userService.getAllUser();
 
 			// Setting response attributes
 			handler2.setMessage("Success");
@@ -60,7 +60,7 @@ public class UserController {
 
 	// ========================= Add new user =========================
 	@PostMapping("/add")
-	public ResponseHandler addUser(@RequestBody UserDTO userDTO) {
+	public ResponseHandler addUser(@RequestBody UserDto userDTO) {
 
 		ResponseHandler handler = new ResponseHandler();
 
@@ -93,7 +93,7 @@ public class UserController {
 	public ResponseHandler getAllUsersPaginated(@RequestBody UserListing userListing) {
 		ResponseHandler handler = new ResponseHandler();
 
-		List<UserDTO> count = userService.getAllUser(); // Get total count of users
+		List<UserDto> count = userService.getAllUser(); // Get total count of users
 		int countUsers = count.size(); // Get the number of users
 		try {
 			// Fetch users based on pagination and filters from the service layer
@@ -131,7 +131,7 @@ public class UserController {
 
 		try {
 			// Fetch user by ID from the service layer
-			UserDTO xyz3 = userService.getUserById(id);
+			UserDto xyz3 = userService.getUserById(id);
 			handler3.setMessage("Success");
 			handler3.setStatus(true);
 			handler3.setData(xyz3);
@@ -156,7 +156,7 @@ public class UserController {
 
 	// ========================= UPDATE user =========================
 	@PutMapping("/update/{id}")
-	public ResponseHandler updateUser(@PathVariable Long id, @RequestBody UserDTO userDTO) {
+	public ResponseHandler updateUser(@PathVariable Long id, @RequestBody UserDto userDTO) {
 
 		ResponseHandler handler4 = new ResponseHandler();
 
@@ -218,7 +218,7 @@ public class UserController {
 
 	    try (InputStream inputStream = file.getInputStream()) {
 	        // Delegate parsing/validation logic to service layer
-	        userService.importExcelToUser(inputStream);
+	        userService.batchProcessing(file);
 
 	        handler.setMessage("Users imported successfully.");
 	        handler.setStatus(true);

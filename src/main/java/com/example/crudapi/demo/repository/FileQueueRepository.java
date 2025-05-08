@@ -9,7 +9,7 @@ import com.example.crudapi.demo.entity.FileQueue;
 public interface FileQueueRepository extends JpaRepository<FileQueue, Long> {
 	
     // Fetch files with specific status
-	List<FileQueue> findByIsProcessed(String status);
+	List<FileQueue> findByIsProcessed(String isProcessed);
 
 }
 

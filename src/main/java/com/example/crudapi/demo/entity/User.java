@@ -1,7 +1,7 @@
 package com.example.crudapi.demo.entity;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Date;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -9,7 +9,14 @@ import org.hibernate.annotations.UpdateTimestamp;
 import com.example.crudapi.demo.enums.Gender;
 import com.example.crudapi.demo.enums.Title;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 /**
  * Entity class representing a User. Maps to the "users" table in the database.
@@ -53,7 +60,7 @@ public class User {
 	 * Date of birth of the user.
 	 */
 	@Column(name = "DateOfBirth")
-	private LocalDate dob;
+	private Date dob;
 
 	/**
 	 * Gender of the user (Enum: MALE, FEMALE, OTHER).
@@ -151,11 +158,13 @@ public class User {
 		this.fullName = fullName;
 	}
 
-	public LocalDate getDob() {
+	
+
+	public Date getDob() {
 		return dob;
 	}
 
-	public void setDob(LocalDate dob) {
+	public void setDob(Date dob) {
 		this.dob = dob;
 	}
 
